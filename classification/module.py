@@ -38,10 +38,11 @@ class XRayClassificationModule(pl.LightningModule):
         return self.model(images)
 
     def configure_optimizers(self):
-        optimizer = AdamW(self.model.parameters(), lr=self.hparams.lr)
+        optimizer = AdamW(
+            self.model.parameters(), lr=self.hparams.lr,  weight_decay=self.hparams.weight_decay)
 
-        opt_step_period = self.hparams.batch_size * self.trainer.accumulate_grad_batches
-        steps_per_epoch = ceil(len(self.trainer.datamodule.train_dataset) / opt_step_period)
+        # opt_step_period = self.hparams.batch_size * self.trainer.accumulate_grad_batches
+        # steps_per_epoch = ceil(len(self.trainer.datamodule.train_dataset) / opt_step_period)
         # scheduler = {
         #     'scheduler': OneCycleLR(
         #         optimizer, max_lr=self.hparams.lr, pct_start=self.hparams.lr_pct_start,
@@ -149,6 +150,9 @@ class XRayClassificationModule(pl.LightningModule):
 
         # Loss
         parser.add_argument('--smoothing_epsilon', type=float, default=0.0)
+
+        # Optimizer
+        parser.add_argument('--weight_decay', type=float, default=1e-6)
 
         # Learning rate
         parser.add_argument('--lr', type=float, default=1e-4)

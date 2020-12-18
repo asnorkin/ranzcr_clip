@@ -37,13 +37,13 @@ class XRayClassificationDataModule(pl.LightningDataModule):
 
         # Transforms
         augmentations = [
-            # A.RandomResizedCrop(height=self.config.input_height, width=self.config.input_width,
-            #                     ratio=(0.75, 2.0), scale=(0.3, 1.5)),
+            A.RandomResizedCrop(height=self.config.input_height, width=self.config.input_width,
+                                scale=(0.85, 1.0)),
+            A.HorizontalFlip(),
             # A.RandomBrightnessContrast(),
             # A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit=0.3, val_shift_limit=0.2),
             # A.MultiplicativeNoise(multiplier=(0.9, 1.1), per_channel=True, elementwise=True),
             # A.ImageCompression(quality_lower=50, quality_upper=100),
-            # A.HorizontalFlip(),
         ]
 
         post_transforms = [
