@@ -41,21 +41,16 @@ class XRayClassificationModule(pl.LightningModule):
         optimizer = AdamW(
             self.model.parameters(), lr=self.hparams.lr,  weight_decay=self.hparams.weight_decay)
 
-        # opt_step_period = self.hparams.batch_size * self.trainer.accumulate_grad_batches
-        # steps_per_epoch = ceil(len(self.trainer.datamodule.train_dataset) / opt_step_period)
-        # scheduler = {
-        #     'scheduler': OneCycleLR(
-        #         optimizer, max_lr=self.hparams.lr, pct_start=self.hparams.lr_pct_start,
-        #         div_factor=self.hparams.lr_div_factor, steps_per_epoch=steps_per_epoch,
-        #         epochs=self.hparams.max_epochs),
-        #     'interval': 'step',
-        # }
+        opt_step_period = self.hparams.batch_size * self.trainer.accumulate_grad_batches
+        steps_per_epoch = ceil(len(self.trainer.datamodule.train_dataset) / opt_step_period)
         scheduler = {
-            'scheduler': ReduceLROnPlateau(optimizer, factor=0.1, patience=1, mode='min', verbose=True),
-            'monitor': 'val_monitor',
-            'interval': 'epoch',
-            'frequency': self.hparams.check_val_every_n_epoch,
+            'scheduler': OneCycleLR(
+                optimizer, max_lr=self.hparams.lr, pct_start=self.hparams.lr_pct_start,
+                div_factor=self.hparams.lr_div_factor, steps_per_epoch=steps_per_epoch,
+                epochs=self.hparams.max_epochs),
+            'interval': 'step',
         }
+
         return [optimizer], [scheduler]
 
     def loss(self, logits, batch):
@@ -156,7 +151,7 @@ class XRayClassificationModule(pl.LightningModule):
 
         # Learning rate
         parser.add_argument('--lr', type=float, default=1e-4)
-        parser.add_argument('--lr_pct_start', type=float, default=0.1)
+        parser.add_argument('--lr_pct_start', type=float, default=0.2)
         parser.add_argument('--lr_div_factor', type=float, default=1e3)
 
         return parser

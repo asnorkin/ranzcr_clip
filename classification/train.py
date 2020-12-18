@@ -5,9 +5,7 @@ from argparse import ArgumentParser
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
-from pytorch_lightning.loggers import MLFlowLogger, TensorBoardLogger
-
-from sklearn.metrics import classification_report
+from pytorch_lightning.loggers import TensorBoardLogger
 
 from classification.datamodule import XRayClassificationDataModule
 from classification.module import XRayClassificationModule
@@ -68,13 +66,6 @@ def tensorboard_logger(args):
     )
 
 
-def mlflow_logger(args):
-    return MLFlowLogger(
-        experiment_name=args.experiment,
-        save_dir=osp.join(args.log_dir, 'mlflow'),
-    )
-
-
 def main(args):
     # Set up seed
     pl.seed_everything(seed=args.seed)
@@ -94,28 +85,6 @@ def main(args):
 
     # Fit
     trainer.fit(model, datamodule=data)
-
-    # Print best model
-    print(f'Best model score is {ckpt_callback.best_model_score}')
-    print(f'Best model is {ckpt_callback.best_model_path}')
-
-    # Classification report on train dataset
-    data.val_sampler = None
-    trainer.test(model=model, test_dataloaders=data.val_dataloader())
-
-    print(f'Validation dataset report')
-    labels = list(range(len(data.val_dataset.classes)))
-    print(classification_report(model.test_labels, model.test_predictions, labels=labels,
-                                target_names=data.val_dataset.classes))
-
-    # Classification report on val dataset
-    data.train_sampler = None
-    trainer.test(model=model, test_dataloaders=data.train_dataloader())
-
-    print(f'Train dataset report')
-    labels = list(range(len(data.train_dataset.classes)))
-    print(classification_report(model.test_labels, model.test_predictions, labels=labels,
-                                target_names=data.train_dataset.classes))
 
 
 if __name__ == '__main__':
