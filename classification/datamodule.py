@@ -53,20 +53,28 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         ]
 
         # Train dataset
+        train_items_per_epoch = self.hparams.train_steps_per_epoch
+        if train_items_per_epoch is not None:
+            train_items_per_epoch *= self.hparams.batch_size
+
         train_transform = A.Compose(augmentations + post_transforms)
         self.train_dataset = XRayDataset(
             train_items,
             self.classes,
             transform=train_transform,
-            items_per_epoch=self.hparams.train_steps_per_epoch * self.hparams.batch_size)
+            items_per_epoch=train_items_per_epoch)
 
         # Val dataset
+        val_items_per_epoch = self.hparams.val_steps_per_epoch
+        if val_items_per_epoch is not None:
+            val_items_per_epoch *= self.hparams.batch_size
+
         val_transform = A.Compose(post_transforms)
         self.val_dataset = XRayDataset(
             val_items,
             self.classes,
             transform=val_transform,
-            items_per_epoch=self.hparams.val_steps_per_epoch * self.hparams.batch_size)
+            items_per_epoch=val_items_per_epoch)
 
     def train_dataloader(self):
         return self._dataloader(self.train_dataset, shuffle=True)
