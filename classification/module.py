@@ -5,7 +5,7 @@ import pytorch_lightning as pl
 
 import torch
 from torch.optim import AdamW
-from torch.optim.lr_scheduler import OneCycleLR
+from torch.optim.lr_scheduler import OneCycleLR, ReduceLROnPlateau
 
 from classification.loss import batch_roc_auc, BCEWithLogitsLoss
 from classification.model import ModelConfig, resnext50_32x4d
@@ -42,12 +42,18 @@ class XRayClassificationModule(pl.LightningModule):
 
         opt_step_period = self.hparams.batch_size * self.trainer.accumulate_grad_batches
         steps_per_epoch = ceil(len(self.trainer.datamodule.train_dataset) / opt_step_period)
+        # scheduler = {
+        #     'scheduler': OneCycleLR(
+        #         optimizer, max_lr=self.hparams.lr, pct_start=self.hparams.lr_pct_start,
+        #         div_factor=self.hparams.lr_div_factor, steps_per_epoch=steps_per_epoch,
+        #         epochs=self.hparams.max_epochs),
+        #     'interval': 'step',
+        # }
         scheduler = {
-            'scheduler': OneCycleLR(
-                optimizer, max_lr=self.hparams.lr, pct_start=self.hparams.lr_pct_start,
-                div_factor=self.hparams.lr_div_factor, steps_per_epoch=steps_per_epoch,
-                epochs=self.hparams.max_epochs),
-            'interval': 'step',
+            'scheduler': ReduceLROnPlateau(optimizer, factor=0.1, patience=1, mode='min', verbose=True),
+            'monitor': 'val_monitor',
+            'interval': 'epoch',
+            'frequency': self.hparams.check_val_every_n_epoch,
         }
         return [optimizer], [scheduler]
 

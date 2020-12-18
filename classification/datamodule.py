@@ -7,7 +7,7 @@ import pytorch_lightning as pl
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
-from classification.dataset import XRayDataset, StratifiedLabelSampler
+from classification.dataset import XRayDataset
 from classification.model import ModelConfig
 
 
@@ -58,10 +58,7 @@ class XRayClassificationDataModule(pl.LightningDataModule):
             train_items,
             self.classes,
             transform=train_transform,
-            steps_per_epoch=self.hparams.train_steps_per_epoch)
-
-        # Train sampler
-        self.train_sampler = StratifiedLabelSampler(train_items)
+            items_per_epoch=self.hparams.train_steps_per_epoch * self.hparams.batch_size)
 
         # Val dataset
         val_transform = A.Compose(post_transforms)
@@ -69,10 +66,10 @@ class XRayClassificationDataModule(pl.LightningDataModule):
             val_items,
             self.classes,
             transform=val_transform,
-            steps_per_epoch=self.hparams.val_steps_per_epoch)
+            items_per_epoch=self.hparams.val_steps_per_epoch * self.hparams.batch_size)
 
     def train_dataloader(self):
-        return self._dataloader(self.train_dataset, sampler=self.train_sampler)
+        return self._dataloader(self.train_dataset, shuffle=True)
 
     def val_dataloader(self):
         return self._dataloader(self.val_dataset)

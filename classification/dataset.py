@@ -13,14 +13,15 @@ def read_dirs(dirpath):
 
 
 class XRayDataset(Dataset):
-    def __init__(self, items, classes, transform=None, steps_per_epoch=None):
+    def __init__(self, items, classes, transform=None, items_per_epoch=None):
         self.items = items
         self.classes = classes
         self.transform = transform
-        self.steps_per_epoch = steps_per_epoch or len(self.items)
+        self.items_per_epoch = items_per_epoch or len(self.items)
+        self.buckets = len(self.items) // self.items_per_epoch + int(len(self.items) % self.items_per_epoch)
 
     def __len__(self):
-        return self.steps_per_epoch
+        return self.items_per_epoch
 
     def __getitem__(self, index):
         if index >= len(self):
@@ -34,7 +35,12 @@ class XRayDataset(Dataset):
         return sample
 
     def _load_sample(self, index):
-        item = self.items[index % len(self.items)]
+        if self.buckets > 1:
+            bucket_offset = np.random.randint(0, self.buckets) * self.items_per_epoch
+            index = bucket_offset + index
+            index = index % len(self.items)
+
+        item = self.items[index]
 
         sample = {
             'image': item['image'],
@@ -56,6 +62,9 @@ class XRayDataset(Dataset):
         with tqdm(desc='Loading dataset', unit='image', total=len(labels_df)) as progress_bar:
             for i, row in labels_df.iterrows():
                 image_file = osp.join(images_dir, f'{row.StudyInstanceUID}.jpg')
+                if not osp.exists(image_file):
+                    continue
+
                 items.append({
                     'image_file': image_file,
                     'image': cls.load_image(image_file) if cache_images else None,
@@ -66,9 +75,9 @@ class XRayDataset(Dataset):
         return items, classes
 
     @classmethod
-    def create(cls, labels_csv, images_dir, cache_images=False, transform=None, steps_per_epoch=None):
+    def create(cls, labels_csv, images_dir, cache_images=False, transform=None, items_per_epoch=None):
         items, classes = cls.load_items(labels_csv, images_dir, cache_images=cache_images)
-        return cls(items, classes, transform=transform, steps_per_epoch=steps_per_epoch)
+        return cls(items, classes, transform=transform, items_per_epoch=items_per_epoch)
 
     @classmethod
     def load_image(cls, image_file):
