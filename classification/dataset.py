@@ -13,12 +13,13 @@ def read_dirs(dirpath):
 
 
 class XRayDataset(Dataset):
-    def __init__(self, items, classes, transform=None, items_per_epoch=None):
+    def __init__(self, items, classes, transform=None, items_per_epoch=None, indices=None):
         self.items = items
         self.classes = classes
         self.transform = transform
-        self.items_per_epoch = items_per_epoch or len(self.items)
-        self.buckets = len(self.items) // self.items_per_epoch + int(len(self.items) % self.items_per_epoch)
+        self.indices = indices or list(range(len(items)))
+        self.items_per_epoch = items_per_epoch or len(self.indices)
+        self.buckets = len(self.indices) // self.items_per_epoch + int(len(self.indices) % self.items_per_epoch)
 
     def __len__(self):
         return self.items_per_epoch
@@ -34,11 +35,21 @@ class XRayDataset(Dataset):
 
         return sample
 
+    def setup_indices(self, indices=None):
+        if indices is None:
+            indices = list(range(len(self.items)))
+
+        if self.items_per_epoch == len(self.indices):
+            self.items_per_epoch = len(indices)
+
+        self.indices = indices
+        self.buckets = len(self.indices) // self.items_per_epoch + int(len(self.indices) % self.items_per_epoch)
+
     def _load_sample(self, index):
         if self.buckets > 1:
             bucket_offset = np.random.randint(0, self.buckets) * self.items_per_epoch
             index = bucket_offset + index
-            index = index % len(self.items)
+            index = self.indices[index % len(self.indices)]
 
         item = self.items[index]
 
@@ -69,6 +80,7 @@ class XRayDataset(Dataset):
                     'image_file': image_file,
                     'image': cls.load_image(image_file) if cache_images else None,
                     'target': row[classes].values.astype(np.float),
+                    'patient_id': row['PatientID'],
                 })
                 progress_bar.update()
 

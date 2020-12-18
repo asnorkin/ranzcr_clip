@@ -4,7 +4,7 @@ import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 
 import pytorch_lightning as pl
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GroupKFold, train_test_split
 from torch.utils.data import DataLoader
 
 from classification.dataset import XRayDataset
@@ -18,22 +18,41 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         self.config = ModelConfig(hparams.config_file)
         self.hparams = hparams
 
+        # Common placeholders
+        self.items = None
         self.classes = None
         self.train_dataset = None
         self.val_dataset = None
         self.train_sampler = None
 
+        # Cross validation placeholders
+        self.cv = None
+        self.train_indices = None
+        self.val_indices = None
+
     def setup(self, stage=None):
         # Load and split items
-        items, self.classes = XRayDataset.load_items(self.hparams.labels_csv, self.hparams.images_dir)
-        if self.hparams.val_size is None:
-            train_items, val_items = items, items
+        self.items, self.classes = XRayDataset.load_items(self.hparams.labels_csv, self.hparams.images_dir)
+
+        if self.hparams.cv_folds is not None:
+            self.cv = GroupKFold(n_splits=self.hparams.cv_folds)
+            patient_ids = [item['patient_id'] for item in self.items]
+
+            self.train_indices, self.val_indices = [], []
+            for fold_train_indices, fold_val_indices in self.cv.split(self.items, groups=patient_ids):
+                self.train_indices.append(fold_train_indices)
+                self.val_indices.append(fold_val_indices)
+
+            train_items = val_items = self.items
+
+        elif self.hparams.val_size is None:
+            train_items = val_items = self.items
         else:
             split_params = {'test_size': self.hparams.val_size}
             if self.hparams.stratify:
-                split_params['stratify'] = [item['target'] for item in items]
+                split_params['stratify'] = [item['target'] for item in self.items]
 
-            train_items, val_items = train_test_split(items, **split_params)
+            train_items, val_items = train_test_split(self.items, **split_params)
 
         # Transforms
         augmentations = [
@@ -76,10 +95,17 @@ class XRayClassificationDataModule(pl.LightningDataModule):
             transform=val_transform,
             items_per_epoch=val_items_per_epoch)
 
+    def setup_fold(self, fold):
+        self.train_dataset.setup_indices(self.train_indices[fold])
+        self.val_dataset.setup_indices(self.val_indices[fold])
+
     def train_dataloader(self):
         return self._dataloader(self.train_dataset, shuffle=True)
 
     def val_dataloader(self):
+        return self._dataloader(self.val_dataset)
+
+    def test_dataloader(self):
         return self._dataloader(self.val_dataset)
 
     def _dataloader(self, dataset, sampler=None, shuffle=False):
@@ -106,8 +132,10 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         parser.add_argument('--images_dir', type=str, default='data/train')
 
         # General
+        parser.add_argument('--num_epochs', type=int, default=10)
         parser.add_argument('--num_workers', type=int, default=8)
         parser.add_argument('--batch_size', type=int, default=32)
+        parser.add_argument('--cv_folds', type=int, default=None)
         parser.add_argument('--val_size', type=float, default=None,
                             help='val_size=None means use all train set without augmentations for validation')
         parser.add_argument('--train_steps_per_epoch', type=int, default=None)

@@ -1,8 +1,9 @@
 WORK_DIR=classification
-LR=1e-4
-EPOCHS=8
+LR=1e-3
+EPOCHS=1
 BATCH_SIZE=24
 NUM_WORKERS=16
+NUM_FOLDS=5
 
 PROJECT=resnext50_32x4d
 
@@ -20,8 +21,8 @@ nohup python classification/train.py \
     --num_workers=${NUM_WORKERS} \
     --lr=${LR} \
     --gpus=${GPUS} \
-    --max_epochs=${EPOCHS} \
-    --val_size=0.2 \
+    --num_epochs=${EPOCHS} \
+    --cv_folds=${NUM_FOLDS} \
     --accelerator=ddp \
     --cache_images \
     &> ${EXPERIMENT}.log 2>&1 &

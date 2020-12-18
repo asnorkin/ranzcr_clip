@@ -5,7 +5,7 @@ import pytorch_lightning as pl
 
 import torch
 from torch.optim import AdamW
-from torch.optim.lr_scheduler import OneCycleLR, ReduceLROnPlateau
+from torch.optim.lr_scheduler import OneCycleLR
 
 from classification.loss import batch_roc_auc, BCEWithLogitsLoss
 from classification.model import ModelConfig, resnext50_32x4d
@@ -39,7 +39,8 @@ class XRayClassificationModule(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = AdamW(
-            self.model.parameters(), lr=self.hparams.lr,  weight_decay=self.hparams.weight_decay)
+            self.model.parameters(), lr=self.hparams.lr,
+            weight_decay=self.hparams.weight_decay)
 
         opt_step_period = self.hparams.batch_size * self.trainer.accumulate_grad_batches
         steps_per_epoch = ceil(len(self.trainer.datamodule.train_dataset) / opt_step_period)
@@ -134,8 +135,12 @@ class XRayClassificationModule(pl.LightningModule):
 
         # Logs
         logs = dict()
-        logs.update({f'losses/{stage}_{loss_name}': loss_value for loss_name, loss_value in losses.items()})
-        logs.update({f'metrics/{stage}_{metric_name}': metric_value for metric_name, metric_value in metrics.items()})
+        if len(logs) > 0:
+            logs.update({f'losses/{stage}_{loss_name}': loss_value
+                         for loss_name, loss_value in losses.items()})
+        if len(metrics) > 0:
+            logs.update({f'metrics/{stage}_{metric_name}': metric_value
+                         for metric_name, metric_value in metrics.items()})
 
         return progress_bar, logs
 

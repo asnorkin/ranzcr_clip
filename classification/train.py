@@ -3,6 +3,7 @@ import os.path as osp
 import warnings
 from argparse import ArgumentParser
 
+import numpy as np
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
@@ -43,15 +44,31 @@ def config_args():
     args.checkpoints_dir = f'{args.work_dir}/checkpoints/{args.experiment}'
     args.log_dir = f'{args.work_dir}/logs'
 
+    if args.num_epochs is not None:
+        args.max_epochs = args.num_epochs
+
     return args
 
 
-def checkpoint_callback(args):
+def create_if_not_exist(dirpath):
+    if not osp.exists(dirpath):
+        os.makedirs(dirpath)
+
+
+def create_dirs(args):
+    create_if_not_exist(args.checkpoints_dir)
+    create_if_not_exist(args.log_dir)
+
+
+def checkpoint_callback(args, fold=-1):
     if not osp.exists(args.checkpoints_dir):
         os.makedirs(args.checkpoints_dir)
 
+    prefix = f'fold{fold}' if fold >= 0 else ''
+
     return ModelCheckpoint(
         dirpath=args.checkpoints_dir,
+        prefix=prefix,
         save_top_k=1,
         save_last=True,
         monitor='val_monitor',
@@ -59,24 +76,35 @@ def checkpoint_callback(args):
     )
 
 
-def tensorboard_logger(args):
+def tensorboard_logger(args, fold=-1):
+    prefix = f'fold{fold}' if fold >= 0 else ''
+    version = f'fold{fold}' if fold >= 0 else None
     return TensorBoardLogger(
-        save_dir=osp.join(args.log_dir, 'tensorboard'),
+        save_dir=args.log_dir,
         name=args.experiment,
+        prefix=prefix,
+        version=version,
+        default_hp_metric=False,
     )
 
 
-def main(args):
+def train_model(args, fold=-1, data=None):
     # Set up seed
-    pl.seed_everything(seed=args.seed)
+    pl.seed_everything(seed=args.seed + fold)
 
-    # Create data and model modules
-    data = XRayClassificationDataModule(args)
+    # If no data provided create it
+    if data is None:
+        data = XRayClassificationDataModule(args)
+
+    # Setup data fold
+    data.setup_fold(fold)
+
+    # Create model
     model = XRayClassificationModule(args)
 
     # Create trainer
-    logger = tensorboard_logger(args)
-    ckpt_callback = checkpoint_callback(args)
+    logger = tensorboard_logger(args, fold=fold)
+    ckpt_callback = checkpoint_callback(args, fold=fold)
     trainer = pl.Trainer.from_argparse_args(
         args,
         callbacks=[ckpt_callback],
@@ -85,6 +113,42 @@ def main(args):
 
     # Fit
     trainer.fit(model, datamodule=data)
+
+    # Calculate OOF predictions
+    if fold >= 0:
+        trainer.test(model, datamodule=data)
+        return data.val_indices[fold], model.test_probabilities
+
+
+def cross_validate(args):
+    # Create and setup datamodule
+    data = XRayClassificationDataModule(args)
+    data.setup()
+
+    # OOF probabilities placeholder
+    oof_probabilities = np.zeros((len(data.items), 11))
+
+    # Folds loop
+    for fold in range(args.cv_folds):
+        print(f'FOLD {fold}')
+        fold_oof_indices, fold_oof_probabilities = train_model(args, fold=fold, data=data)
+        oof_probabilities[fold_oof_indices] = fold_oof_probabilities
+
+    # Save OOF probabilities
+    np.save(osp.join(args.checkpoints_dir, 'oof_probabilities.npy'), oof_probabilities)
+
+
+def main(args):
+    # Create checkpoints and logs dirs
+    create_dirs(args)
+
+    # Train one model
+    if args.cv_folds is None:
+        train_model(args)
+
+    # Train fold models
+    else:
+        cross_validate(args)
 
 
 if __name__ == '__main__':
