@@ -127,3 +127,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Data and logs
+data/
+logs/
+checkpoints/
+mlruns/
+
+kaggle_ideas/
+.idea/
+.DS_Store

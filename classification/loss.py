@@ -1,0 +1,83 @@
+import numpy as np
+from sklearn.metrics import roc_auc_score
+
+import torch
+from torch import nn
+from torch.nn import functional as F
+
+
+def linear_combination(x, y, alpha):
+    return alpha * x + (1 - alpha) * y
+
+
+def reduce_loss(loss, reduction='mean'):
+    return loss.mean() if reduction == 'mean' else loss.sum() if reduction == 'sum' else loss
+
+
+def to_numpy(arr):
+    if isinstance(arr, torch.Tensor):
+        arr = arr.cpu().numpy()
+
+    return arr
+
+
+def batch_roc_auc(targets, probabilities):
+    targets_np, probabilities_np = to_numpy(targets), to_numpy(probabilities)
+    result = []
+    for i in range(11):
+        targets_i, probabilities_i = targets_np[:, i], probabilities_np[:, i]
+        if len(np.unique(targets_i)) == 1:
+            print(f'Target {i} has only one class. Skip it in ROC AUC.')
+            continue
+
+        result.append(roc_auc_score(targets_i, probabilities_i))
+
+    if len(result) == 0:
+        print(f'No targets has valid ROC AUC, result is zero.')
+        result = 0.
+    else:
+        result = np.mean(result)
+
+    return result
+
+
+class LabelSmoothingCrossEntropy(nn.Module):
+    def __init__(self, epsilon: float = 0.1, reduction='mean'):
+        super().__init__()
+        self.epsilon = epsilon
+        self.reduction = reduction
+
+    def forward(self, logits, targets):
+        n = logits.size()[-1]
+        log_preds = F.log_softmax(logits, dim=-1)
+        loss = reduce_loss(-log_preds.sum(dim=-1), self.reduction)
+        nll = F.nll_loss(log_preds, targets, reduction=self.reduction)
+        return linear_combination(loss / n, nll, self.epsilon)
+
+
+class BCEWithLogitsLoss(nn.Module):
+    def __init__(self, epsilon=0.0, clip=0.0, weight=None, reduction='mean'):
+        super().__init__()
+
+        assert clip >= 0.0
+        self.clip = clip
+        self._clip_logit_lo = torch.logit(torch.tensor(clip)) if clip != 0.0 else None
+        self._clip_logit_hi = torch.logit(1. - torch.tensor(clip)) if clip != 0.0 else None
+
+        self.epsilon = epsilon
+        self.weight = weight
+        self.reduction = reduction
+
+    def forward(self, logits, targets):
+        # Smooth labels
+        targets = (1 - 2 * self.epsilon) * targets + self.epsilon
+
+        # Clip logits
+        if self.clip != 0.0:
+            logits = torch.clamp(logits, self._clip_logit_lo, self._clip_logit_hi)
+
+        # Compute bce
+        bce = F.binary_cross_entropy_with_logits(
+            logits, targets, weight=self.weight, reduction=self.reduction)
+
+        return bce

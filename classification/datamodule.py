@@ -1,0 +1,113 @@
+from argparse import ArgumentParser
+
+import albumentations as A
+from albumentations.pytorch.transforms import ToTensorV2
+
+import pytorch_lightning as pl
+from sklearn.model_selection import train_test_split
+from torch.utils.data import DataLoader
+
+from classification.dataset import XRayDataset, StratifiedLabelSampler
+from classification.model import ModelConfig
+
+
+class XRayClassificationDataModule(pl.LightningDataModule):
+    def __init__(self, hparams):
+        super().__init__()
+
+        self.config = ModelConfig(hparams.config_file)
+        self.hparams = hparams
+
+        self.classes = None
+        self.train_dataset = None
+        self.val_dataset = None
+        self.train_sampler = None
+
+    def setup(self, stage=None):
+        # Load and split items
+        items, self.classes = XRayDataset.load_items(self.hparams.labels_csv, self.hparams.images_dir)
+        if self.hparams.val_size is None:
+            train_items, val_items = items, items
+        else:
+            split_params = {'test_size': self.hparams.val_size}
+            if self.hparams.stratify:
+                split_params['stratify'] = [item['target'] for item in items]
+
+            train_items, val_items = train_test_split(items, **split_params)
+
+        # Transforms
+        augmentations = [
+            # A.RandomResizedCrop(height=self.config.input_height, width=self.config.input_width,
+            #                     ratio=(0.75, 2.0), scale=(0.3, 1.5)),
+            # A.RandomBrightnessContrast(),
+            # A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit=0.3, val_shift_limit=0.2),
+            # A.MultiplicativeNoise(multiplier=(0.9, 1.1), per_channel=True, elementwise=True),
+            # A.ImageCompression(quality_lower=50, quality_upper=100),
+            # A.HorizontalFlip(),
+        ]
+
+        post_transforms = [
+            A.Resize(height=self.config.input_height, width=self.config.input_width),
+            A.Normalize(),
+            ToTensorV2(),
+        ]
+
+        # Train dataset
+        train_transform = A.Compose(augmentations + post_transforms)
+        self.train_dataset = XRayDataset(
+            train_items,
+            self.classes,
+            transform=train_transform,
+            steps_per_epoch=self.hparams.train_steps_per_epoch)
+
+        # Train sampler
+        self.train_sampler = StratifiedLabelSampler(train_items)
+
+        # Val dataset
+        val_transform = A.Compose(post_transforms)
+        self.val_dataset = XRayDataset(
+            val_items,
+            self.classes,
+            transform=val_transform,
+            steps_per_epoch=self.hparams.val_steps_per_epoch)
+
+    def train_dataloader(self):
+        return self._dataloader(self.train_dataset, sampler=self.train_sampler)
+
+    def val_dataloader(self):
+        return self._dataloader(self.val_dataset)
+
+    def _dataloader(self, dataset, sampler=None, shuffle=False):
+        params = {
+            'drop_last': False,
+            'pin_memory': True,
+            'batch_size': self.hparams.batch_size,
+            'num_workers': self.hparams.num_workers,
+        }
+
+        if sampler is not None:
+            params['sampler'] = sampler
+        else:
+            params['shuffle'] = shuffle
+
+        return DataLoader(dataset, **params)
+
+    @staticmethod
+    def add_data_specific_args(parent_parser):
+        parser = ArgumentParser(parents=[parent_parser], add_help=False)
+
+        # Paths
+        parser.add_argument('--labels_csv', type=str, default='data/train.csv')
+        parser.add_argument('--images_dir', type=str, default='data/train')
+
+        # General
+        parser.add_argument('--num_workers', type=int, default=8)
+        parser.add_argument('--batch_size', type=int, default=32)
+        parser.add_argument('--val_size', type=float, default=None,
+                            help='val_size=None means use all train set without augmentations for validation')
+        parser.add_argument('--train_steps_per_epoch', type=int, default=None)
+        parser.add_argument('--val_steps_per_epoch', type=int, default=None)
+        parser.add_argument('--cache_images', action='store_true')
+        parser.add_argument('--stratify', action='store_true')
+
+        return parser
