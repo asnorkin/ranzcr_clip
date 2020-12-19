@@ -99,8 +99,9 @@ class XRayClassificationModule(pl.LightningModule):
         roc_auc = batch_roc_auc(self.test_labels, self.test_probabilities)
         roc_auc = torch.as_tensor(roc_auc)
 
-        self.log('val_roc_auc', roc_auc, logger=False, prog_bar=True)
-        self.log(f'metrics/{stage}_{roc_auc}', roc_auc, logger=True, prog_bar=False)
+        if stage == 'val':
+            self.log(f'{stage}_roc_auc', roc_auc, logger=False, prog_bar=True)
+            self.log(f'metrics/{stage}_roc_auc', roc_auc, logger=True, prog_bar=False)
 
         if stage == 'val':
             self.log('val_monitor', -roc_auc)
