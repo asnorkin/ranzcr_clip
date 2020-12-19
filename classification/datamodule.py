@@ -105,9 +105,6 @@ class XRayClassificationDataModule(pl.LightningDataModule):
     def val_dataloader(self):
         return self._dataloader(self.val_dataset)
 
-    def test_dataloader(self):
-        return self._dataloader(self.val_dataset)
-
     def _dataloader(self, dataset, sampler=None, shuffle=False):
         params = {
             'drop_last': False,

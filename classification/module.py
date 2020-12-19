@@ -128,10 +128,9 @@ class XRayClassificationModule(pl.LightningModule):
 
     def _get_progress_bar_and_logs(self, losses, metrics, stage):
         # Progress bar
-        prefix = '' if stage == 'train' else f'{stage}_'
         progress_bar = {}
         if stage != 'train':
-            progress_bar[f'{prefix}loss'] = losses['total']
+            progress_bar[f'{stage}_loss'] = losses['total']
 
         # Logs
         logs = dict()

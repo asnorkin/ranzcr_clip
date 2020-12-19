@@ -97,7 +97,8 @@ def train_model(args, fold=-1, data=None):
         data = XRayClassificationDataModule(args)
 
     # Setup data fold
-    data.setup_fold(fold)
+    if fold >= 0:
+        data.setup_fold(fold)
 
     # Create model
     model = XRayClassificationModule(args)
@@ -116,7 +117,7 @@ def train_model(args, fold=-1, data=None):
 
     # Calculate OOF predictions
     if fold >= 0:
-        trainer.test(model, datamodule=data)
+        trainer.test(model, test_dataloaders=data.val_dataloader())
         return data.val_indices[fold], model.test_probabilities
 
 
