@@ -155,8 +155,9 @@ class XRayClassificationModule(pl.LightningModule):
         parser.add_argument('--weight_decay', type=float, default=1e-6)
 
         # Learning rate
-        parser.add_argument('--lr', type=float, default=1e-4)
-        parser.add_argument('--lr_pct_start', type=float, default=0.2)
-        parser.add_argument('--lr_div_factor', type=float, default=1e3)
+        parser.add_argument('--lr', type=float, default=5e-4)
+        parser.add_argument('--lr_pct_start', type=float, default=0.1)
+        parser.add_argument('--lr_div_factor', type=float, default=1000.)
+        parser.add_argument('--lr_final_div_factor', type=float, default=500.)
 
         return parser
