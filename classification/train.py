@@ -75,7 +75,7 @@ def checkpoint_callback(args, fold=-1):
         dirpath=args.checkpoints_dir,
         filename=filename,
         save_top_k=1,
-        save_last=True,
+        save_last=False,
         monitor='val_monitor',
         mode=args.monitor_mode)
 
