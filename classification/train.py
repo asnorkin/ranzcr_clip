@@ -5,10 +5,12 @@ from argparse import ArgumentParser
 
 import numpy as np
 import pytorch_lightning as pl
+import torch
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 
 from classification.datamodule import XRayClassificationDataModule
+from classification.loss import batch_roc_auc
 from classification.module import XRayClassificationModule
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -20,6 +22,7 @@ def add_program_specific_args(parent_parser):
     # General
     parser.add_argument('--project', type=str, default='resnext50_32x4d')
     parser.add_argument('--experiment', type=str, default='train')
+    parser.add_argument('--monitor_mode', type=str, default='min')
 
     # Paths
     parser.add_argument('--work_dir', type=str, default='classification')
@@ -72,8 +75,7 @@ def checkpoint_callback(args, fold=-1):
         save_top_k=1,
         save_last=True,
         monitor='val_monitor',
-        mode='min',
-    )
+        mode=args.monitor_mode)
 
 
 def tensorboard_logger(args, fold=-1):
@@ -84,8 +86,7 @@ def tensorboard_logger(args, fold=-1):
         name=args.experiment,
         prefix=prefix,
         version=version,
-        default_hp_metric=False,
-    )
+        default_hp_metric=False)
 
 
 def train_model(args, fold=-1, data=None):
@@ -109,8 +110,7 @@ def train_model(args, fold=-1, data=None):
     trainer = pl.Trainer.from_argparse_args(
         args,
         callbacks=[ckpt_callback],
-        logger=logger,
-    )
+        logger=logger)
 
     # Fit
     trainer.fit(model, datamodule=data)
@@ -134,6 +134,12 @@ def cross_validate(args):
         print(f'FOLD {fold}')
         fold_oof_indices, fold_oof_probabilities = train_model(args, fold=fold, data=data)
         oof_probabilities[fold_oof_indices] = fold_oof_probabilities
+
+    # Verbose
+    oof_roc_auc = batch_roc_auc(
+        targets=torch.as_tensor([item['target'] for item in data.items]),
+        probabilities=oof_probabilities)
+    print(f'OOF ROC AUC: {oof_roc_auc:.3f}')
 
     # Save OOF probabilities
     np.save(osp.join(args.checkpoints_dir, 'oof_probabilities.npy'), oof_probabilities)
