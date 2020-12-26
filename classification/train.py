@@ -69,12 +69,10 @@ def checkpoint_callback(args, fold=-1):
     if not osp.exists(args.checkpoints_dir):
         os.makedirs(args.checkpoints_dir)
 
-    prefix = f'fold{fold}' if fold >= 0 else ''
-    filename = '' if fold >= 0 else 'model'
+    filename = f'fold{fold}' if fold >= 0 else 'model'
 
     return ModelCheckpoint(
         dirpath=args.checkpoints_dir,
-        prefix=prefix,
         filename=filename,
         save_top_k=1,
         save_last=True,
