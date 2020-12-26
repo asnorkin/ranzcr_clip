@@ -70,11 +70,12 @@ def checkpoint_callback(args, fold=-1):
         os.makedirs(args.checkpoints_dir)
 
     prefix = f'fold{fold}' if fold >= 0 else ''
+    filename = '' if fold >= 0 else 'model'
 
     return ModelCheckpoint(
         dirpath=args.checkpoints_dir,
         prefix=prefix,
-        filename='',
+        filename=filename,
         save_top_k=1,
         save_last=True,
         monitor='val_monitor',
