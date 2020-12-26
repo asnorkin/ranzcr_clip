@@ -1,6 +1,7 @@
 import os
 import os.path as osp
 import warnings
+import zipfile
 from argparse import ArgumentParser
 
 import numpy as np
@@ -43,6 +44,7 @@ def config_args():
 
     args = parser.parse_args()
 
+    args.archives_dir = osp.join(args.work_dir, 'archived_checkpoints')
     args.config_file = osp.join(args.work_dir, 'models', args.project + '.yml')
     args.checkpoints_dir = f'{args.work_dir}/checkpoints/{args.experiment}'
     args.log_dir = f'{args.work_dir}/logs'
@@ -72,6 +74,7 @@ def checkpoint_callback(args, fold=-1):
     return ModelCheckpoint(
         dirpath=args.checkpoints_dir,
         prefix=prefix,
+        filename='',
         save_top_k=1,
         save_last=True,
         monitor='val_monitor',
@@ -121,6 +124,16 @@ def train_model(args, fold=-1, data=None):
         return data.val_indices[fold], model.test_probabilities
 
 
+def archive_checkpoints(checkpoints_dir, config_file, archive_file):
+    create_if_not_exist(osp.dirname(archive_file))
+
+    with zipfile.ZipFile(archive_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        zipf.write(config_file, arcname='config.yml')
+        for fname in os.listdir(checkpoints_dir):
+            if fname.startswith('fold'):
+                zipf.write(osp.join(checkpoints_dir, fname), arcname=fname)
+
+
 def cross_validate(args):
     # Create and setup datamodule
     data = XRayClassificationDataModule(args)
@@ -144,6 +157,13 @@ def cross_validate(args):
     # Save OOF probabilities
     np.save(osp.join(args.checkpoints_dir, 'oof_probabilities.npy'), oof_probabilities)
 
+    # Save checkpoints
+    archive_name = f'{args.experiment}'
+    archive_name += f'_{args.lr}lr{args.cv_folds}f{args.num_epochs}e{args.batch_size}b'
+    archive_name += f'_oofrocauc{oof_roc_auc}'
+    archive_file = osp.join(args.archives_dir, archive_name)
+    archive_checkpoints(args.checkpoints_dir, args.config_file, archive_file)
+
 
 def main(args):
     # Create checkpoints and logs dirs
@@ -159,5 +179,4 @@ def main(args):
 
 
 if __name__ == '__main__':
-    args = config_args()
-    main(args)
+    main(config_args())
