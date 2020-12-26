@@ -22,3 +22,16 @@ def resnext50_32x4d(num_classes, pretrained=True, **kwargs):
     model.fc = nn.Linear(num_features, num_classes)
 
     return model
+
+
+def resnet50(num_classes, pretrained=True, **kwargs):
+    kwargs['pretrained'] = pretrained
+
+    # Load original model
+    model = models.resnet50(**kwargs)
+
+    # Change head
+    num_features = model.fc.in_features
+    model.fc = nn.Linear(num_features, num_classes)
+
+    return model

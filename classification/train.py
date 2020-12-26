@@ -21,7 +21,7 @@ def add_program_specific_args(parent_parser):
     parser = ArgumentParser(parents=[parent_parser], add_help=False)
 
     # General
-    parser.add_argument('--project', type=str, default='resnext50_32x4d')
+    parser.add_argument('--project', type=str, default='resnet50')
     parser.add_argument('--experiment', type=str, default='train')
     parser.add_argument('--monitor_mode', type=str, default='min')
 

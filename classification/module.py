@@ -8,7 +8,7 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import OneCycleLR
 
 from classification.loss import batch_roc_auc, BCEWithLogitsLoss
-from classification.model import ModelConfig, resnext50_32x4d
+from classification.model import ModelConfig, resnet50
 
 
 class XRayClassificationModule(pl.LightningModule):
@@ -25,7 +25,7 @@ class XRayClassificationModule(pl.LightningModule):
         self.hparams = hparams
 
         # Model
-        self.model = resnext50_32x4d(num_classes=num_classes)
+        self.model = resnet50(num_classes=num_classes)
 
         # Criterion
         self.criterion = BCEWithLogitsLoss(epsilon=self.hparams.smoothing_epsilon)
