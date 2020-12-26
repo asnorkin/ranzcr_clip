@@ -31,6 +31,10 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         self.val_indices = None
 
     def setup(self, stage=None):
+        # Skip setup on test stage
+        if stage != 'train' and self.train_dataset is not None:
+            return
+
         # Load and split items
         self.items, self.classes = XRayDataset.load_items(self.hparams.labels_csv, self.hparams.images_dir)
 
