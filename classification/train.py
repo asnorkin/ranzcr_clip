@@ -93,6 +93,41 @@ def tensorboard_logger(args, fold=-1):
         default_hp_metric=False)
 
 
+def archive_checkpoints(args, oof_roc_auc, folds):
+    # Archive file
+    archive_name = f'{args.experiment}'
+    if folds:
+        archive_name += f'_{args.lr}lr{args.cv_folds}f{args.num_epochs}e{args.batch_size}b'
+    else:
+        archive_name += f'_single_{args.lr}lr{args.num_epochs}e{args.batch_size}b'
+    archive_name += f'_oofrocauc{oof_roc_auc}'
+    archive_file = osp.join(args.archives_dir, archive_name)
+
+    # Create archived checkpoints dir
+    create_if_not_exist(osp.dirname(archive_file))
+
+    # Get checkpoints files
+    checkpoints_files = []
+    for fname in os.listdir(args.checkpoints_dir):
+        if folds:
+            if fname.startswith('model'):
+                print(f'[WARNING] folds is set and found a one model file: {fname}')
+            if fname.startswith('fold'):
+                checkpoints_files.append(fname)
+
+        else:
+            if fname.startswith('fold'):
+                print(f'[WARNING] folds is not set and found fold file: {fname}')
+            if fname.startswith('model'):
+                checkpoints_files.append(fname)
+
+    # Archive
+    with zipfile.ZipFile(archive_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        zipf.write(args.config_file, arcname='config.yml')
+        for fname in checkpoints_files:
+            zipf.write(osp.join(args.checkpoints_dir, fname), arcname=fname)
+
+
 def train_model(args, fold=-1, data=None):
     # Set up seed
     pl.seed_everything(seed=args.seed + fold)
@@ -123,16 +158,24 @@ def train_model(args, fold=-1, data=None):
     if fold >= 0:
         trainer.test(model, test_dataloaders=data.val_dataloader())
         return data.val_indices[fold], model.test_probabilities
+    else:
+        trainer.test(model, test_dataloaders=data.val_dataloader())
+        return model.test_labels, model.test_probabilities
 
 
-def archive_checkpoints(checkpoints_dir, config_file, archive_file):
-    create_if_not_exist(osp.dirname(archive_file))
+def train_single_model(args):
+    # Train model
+    val_labels, val_probabilities = train_model(args)
 
-    with zipfile.ZipFile(archive_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        zipf.write(config_file, arcname='config.yml')
-        for fname in os.listdir(checkpoints_dir):
-            if fname.startswith('fold'):
-                zipf.write(osp.join(checkpoints_dir, fname), arcname=fname)
+    # Verbose
+    oof_roc_auc = batch_roc_auc(targets=val_labels, probabilities=val_probabilities)
+    print(f'OOF ROC AUC: {oof_roc_auc:.3f}')
+
+    # Save val probabilities
+    np.save(osp.join(args.checkpoints_dir, 'val_probabilities.npy'), val_probabilities)
+
+    # Save checkpoints
+    archive_checkpoints(args, oof_roc_auc, folds=False)
 
 
 def cross_validate(args):
@@ -159,20 +202,16 @@ def cross_validate(args):
     np.save(osp.join(args.checkpoints_dir, 'oof_probabilities.npy'), oof_probabilities)
 
     # Save checkpoints
-    archive_name = f'{args.experiment}'
-    archive_name += f'_{args.lr}lr{args.cv_folds}f{args.num_epochs}e{args.batch_size}b'
-    archive_name += f'_oofrocauc{oof_roc_auc}'
-    archive_file = osp.join(args.archives_dir, archive_name)
-    archive_checkpoints(args.checkpoints_dir, args.config_file, archive_file)
+    archive_checkpoints(args, oof_roc_auc, folds=True)
 
 
 def main(args):
     # Create checkpoints and logs dirs
     create_dirs(args)
 
-    # Train one model
+    # Train single model
     if args.cv_folds is None:
-        train_model(args)
+        train_single_model(args)
 
     # Train fold models
     else:
