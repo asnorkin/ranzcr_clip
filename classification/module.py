@@ -165,7 +165,7 @@ class XRayClassificationModule(pl.LightningModule):
 
     @staticmethod
     def build_model(config, checkpoint_file=None):
-        model = resnet50(num_classes=config.num_classes)
+        model = resnet50(num_classes=config.num_classes, pretrained=checkpoint_file is None)
 
         if checkpoint_file is not None:
             ckpt = torch.load(checkpoint_file, map_location='cpu')
