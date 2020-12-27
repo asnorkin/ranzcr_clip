@@ -71,7 +71,7 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
 
         self.transform = A.Compose([
             A.Resize(height=self.config.input_height, width=self.config.input_width),
-            A.Normalize(),
+            A.Normalize(max_pixel_value=1.0),
             ToTensorV2(),
         ])
 
