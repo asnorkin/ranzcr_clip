@@ -99,7 +99,7 @@ def archive_checkpoints(args, oof_roc_auc, folds):
     else:
         archive_name += f'_single_{args.lr}lr{args.num_epochs}e{args.batch_size}b'
     archive_name += f'_rocauc{oof_roc_auc:.3f}'
-    archive_file = osp.join(args.archives_dir, archive_name)
+    archive_file = osp.join(args.archives_dir, archive_name + '.zip')
 
     # Create archived checkpoints dir
     create_if_not_exist(osp.dirname(archive_file))
