@@ -60,7 +60,7 @@ class BatchGenerator:
         return osp.splitext(osp.basename(image_file))[0]
 
 
-def save(predictions, output_dir):
+def save(predictions, image_uids, output_dir):
     columns = [
         'ETT - Abnormal',
         'ETT - Borderline',
@@ -75,6 +75,8 @@ def save(predictions, output_dir):
         'Swan Ganz Catheter Present']
 
     predictions = pd.DataFrame(data=predictions, columns=columns)
+    predictions['StudyInstanceUID'] = image_uids
+
     predictions.to_csv(osp.join(output_dir, 'submission.csv'), index=False)
     return predictions
 
@@ -96,13 +98,14 @@ def main(args):
     predictor = create_predictor(args)
 
     # Make predictions
-    predictions = []
+    predictions, image_uids = [], []
     for batch in tqdm(batch_generator, desc='Make predictions', unit='batch'):
         predictions.append(predictor.predict_batch(batch))
+        image_uids.append(batch['instance_uids'])
     predictions = torch.cat(predictions).cpu().numpy()
 
     # Save submission
-    save(predictions, args.output_dir)
+    save(predictions, image_uids, args.output_dir)
 
 
 if __name__ == '__main__':
