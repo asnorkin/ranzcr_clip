@@ -1,8 +1,13 @@
+import os.path as osp
+
 import albumentations as A
 import numpy as np
 import torch
 from albumentations.pytorch.transforms import ToTensorV2
 from torch.backends import cudnn
+
+from classification.model import ModelConfig
+from classification.module import XRayClassificationModule
 
 
 class Predictor(object):
@@ -82,3 +87,9 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
         predictions[predictions >= self.config.confidence_threshold] = 1
 
         return predictions
+
+    @classmethod
+    def create_from_checkpoints(cls, checkpoints_dir):
+        config = ModelConfig(osp.join(checkpoints_dir, 'config.yml'))
+        model = XRayClassificationModule.build_model(config, osp.join(checkpoints_dir, 'model.ckpt'))
+        return cls(model, config)

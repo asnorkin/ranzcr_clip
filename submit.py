@@ -7,7 +7,7 @@ import torch
 from tqdm import tqdm
 
 from classification.dataset import XRayDataset
-from predictors import FoldPredictor
+from predictors import FoldPredictor, TorchModelPredictor
 
 
 def config_args():
@@ -17,6 +17,7 @@ def config_args():
     ap.add_argument('--checkpoints_dir', type=str, required=True)
     ap.add_argument('--output_dir', type=str, default='.')
     ap.add_argument('--batch_size', type=int, default=16)
+    ap.add_argument('--predictor_type', type=str, default='fold', choices=['fold', 'single'])
 
     args = ap.parse_args()
 
@@ -78,10 +79,21 @@ def save(predictions, output_dir):
     return predictions
 
 
+def create_predictor(args):
+    if args.predictor_type == 'fold':
+        predictor = FoldPredictor.create_from_checkpoints(args.checkpoints_dir)
+    elif args.predictor_type == 'single':
+        predictor = TorchModelPredictor.create_from_checkpoints(args.checkpoints_dir)
+    else:
+        raise TypeError(f'Unexpected predictor type: {args.predictor_type}')
+
+    return predictor
+
+
 def main(args):
     # Create batch generator and predictor
     batch_generator = BatchGenerator(args.images_dir, args.batch_size)
-    predictor = FoldPredictor.create_from_checkpoints(args.checkpoints_dir)
+    predictor = create_predictor(args)
 
     # Make predictions
     predictions = []

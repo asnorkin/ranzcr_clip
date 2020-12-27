@@ -1,2 +1,4 @@
 input_height: 448
 input_width: 448
+
+num_classes: 11

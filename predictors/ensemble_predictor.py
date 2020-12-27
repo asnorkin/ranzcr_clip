@@ -31,9 +31,7 @@ class FoldPredictor(EnsemblePredictor):
         predictors = []
         for fname in os.listdir(checkpoints_dir):
             if fname.startswith('fold'):
-                predictors.append(
-                    TorchModelPredictor(
-                        config=config,
-                        model=XRayClassificationModule(config)))
+                model = XRayClassificationModule.build_model(config, osp.join(checkpoints_dir, fname))
+                predictors.append(TorchModelPredictor(config=config, model=model))
 
         return cls(predictors)

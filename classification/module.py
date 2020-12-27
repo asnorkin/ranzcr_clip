@@ -12,7 +12,7 @@ from classification.model import ModelConfig, resnet50
 
 
 class XRayClassificationModule(pl.LightningModule):
-    def __init__(self, hparams, num_classes=11):
+    def __init__(self, hparams):
         super().__init__()
 
         if isinstance(hparams, dict):
@@ -25,7 +25,7 @@ class XRayClassificationModule(pl.LightningModule):
         self.hparams = hparams
 
         # Model
-        self.model = resnet50(num_classes=num_classes)
+        self.model = self.build_model(self.config)
 
         # Criterion
         self.criterion = BCEWithLogitsLoss(epsilon=self.hparams.smoothing_epsilon)
@@ -127,7 +127,8 @@ class XRayClassificationModule(pl.LightningModule):
         if len(logs) > 0:
             self.log_dict(logs, prog_bar=False, logger=True)
 
-    def _get_progress_bar_and_logs(self, losses, metrics, stage):
+    @staticmethod
+    def _get_progress_bar_and_logs(losses, metrics, stage):
         # Progress bar
         progress_bar = {}
         if stage != 'train':
@@ -161,3 +162,14 @@ class XRayClassificationModule(pl.LightningModule):
         parser.add_argument('--lr_final_div_factor', type=float, default=500.)
 
         return parser
+
+    @staticmethod
+    def build_model(config, checkpoint_file=None):
+        model = resnet50(num_classes=config.num_classes)
+
+        if checkpoint_file is not None:
+            ckpt = torch.load(checkpoint_file)
+            state_dict = {k.replace('model.', ''): v for k, v in ckpt['state_dict'].items()}
+            model.load_state_dict(state_dict, strict=True)
+
+        return model
