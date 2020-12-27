@@ -91,5 +91,5 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
     @classmethod
     def create_from_checkpoints(cls, checkpoints_dir):
         config = ModelConfig(osp.join(checkpoints_dir, 'config.yml'))
-        model = XRayClassificationModule.build_model(config, osp.join(checkpoints_dir, 'model.ckpt'))
+        model = XRayClassificationModule.build_model(config, osp.join(checkpoints_dir, 'single.ckpt'))
         return cls(model, config)
