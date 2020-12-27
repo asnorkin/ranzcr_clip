@@ -77,7 +77,10 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
 
     def predict_batch(self, batch):
         # Prepare
-        batch = self.transform(**batch)
+        batch['image'] = torch.stack([
+            self.transform(image=batch['image'][i])['image']
+            for i in range(len(batch['image']))
+        ])
 
         # Infer
         predictions = self.model.forward(batch['image']).sigmoid()
