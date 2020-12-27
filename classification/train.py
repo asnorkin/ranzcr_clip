@@ -69,7 +69,7 @@ def checkpoint_callback(args, fold=-1):
     if not osp.exists(args.checkpoints_dir):
         os.makedirs(args.checkpoints_dir)
 
-    filename = f'fold{fold}' if fold >= 0 else 'model'
+    filename = f'fold{fold}' if fold >= 0 else 'single'
 
     return ModelCheckpoint(
         dirpath=args.checkpoints_dir,
@@ -108,7 +108,7 @@ def archive_checkpoints(args, oof_roc_auc, folds):
     checkpoints_files = []
     for fname in os.listdir(args.checkpoints_dir):
         if folds:
-            if fname.startswith('model'):
+            if fname.startswith('single'):
                 print(f'[WARNING] folds is set and found a one model file: {fname}')
             if fname.startswith('fold'):
                 checkpoints_files.append(fname)
@@ -116,7 +116,7 @@ def archive_checkpoints(args, oof_roc_auc, folds):
         else:
             if fname.startswith('fold'):
                 print(f'[WARNING] folds is not set and found fold file: {fname}')
-            if fname.startswith('model'):
+            if fname.startswith('single'):
                 checkpoints_files.append(fname)
 
     # Archive
