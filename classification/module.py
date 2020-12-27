@@ -168,7 +168,7 @@ class XRayClassificationModule(pl.LightningModule):
         model = resnet50(num_classes=config.num_classes)
 
         if checkpoint_file is not None:
-            ckpt = torch.load(checkpoint_file)
+            ckpt = torch.load(checkpoint_file, map_location='cpu')
             state_dict = {k.replace('model.', ''): v for k, v in ckpt['state_dict'].items()}
             model.load_state_dict(state_dict, strict=True)
 
