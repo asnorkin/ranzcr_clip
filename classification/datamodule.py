@@ -4,11 +4,17 @@ import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 
 import pytorch_lightning as pl
-from sklearn.model_selection import GroupKFold, train_test_split
+from sklearn.model_selection import GroupKFold, GroupShuffleSplit
 from torch.utils.data import DataLoader
 
 from classification.dataset import XRayDataset
 from classification.model import ModelConfig
+
+
+def grouped_train_test_split(items, groups=None, test_size=0.2, random_state=None):
+    gss = GroupShuffleSplit(n_splits=2, test_size=test_size, random_state=random_state)
+    train_indices, test_indices = next(gss.split(X=items, y=None, groups=groups))
+    return [items[i] for i in train_indices], [items[i] for i in test_indices]
 
 
 class XRayClassificationDataModule(pl.LightningDataModule):
@@ -37,10 +43,10 @@ class XRayClassificationDataModule(pl.LightningDataModule):
 
         # Load and split items
         self.items, self.classes = XRayDataset.load_items(self.hparams.labels_csv, self.hparams.images_dir)
+        patient_ids = [item['patient_id'] for item in self.items]
 
         if self.hparams.cv_folds is not None:
             self.cv = GroupKFold(n_splits=self.hparams.cv_folds)
-            patient_ids = [item['patient_id'] for item in self.items]
 
             self.train_indices, self.val_indices = [], []
             for fold_train_indices, fold_val_indices in self.cv.split(self.items, groups=patient_ids):
@@ -52,11 +58,12 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         elif self.hparams.val_size is None:
             train_items = val_items = self.items
         else:
-            split_params = {'test_size': self.hparams.val_size}
-            if self.hparams.stratify:
-                split_params['stratify'] = [item['target'] for item in self.items]
-
-            train_items, val_items = train_test_split(self.items, **split_params)
+            train_items, val_items = \
+                grouped_train_test_split(
+                    self.items,
+                    groups=patient_ids,
+                    test_size=self.hparams.val_size,
+                    random_state=self.hparams.seed)
 
         # Transforms
         augmentations = [
@@ -142,6 +149,5 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         parser.add_argument('--train_steps_per_epoch', type=int, default=None)
         parser.add_argument('--val_steps_per_epoch', type=int, default=None)
         parser.add_argument('--cache_images', action='store_true')
-        parser.add_argument('--stratify', action='store_true')
 
         return parser
