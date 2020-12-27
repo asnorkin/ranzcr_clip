@@ -71,7 +71,7 @@ class XRayClassificationDataModule(pl.LightningDataModule):
 
         post_transforms = [
             A.Resize(height=self.config.input_height, width=self.config.input_width),
-            A.Normalize(),
+            A.Normalize(max_pixel_value=1.0),
             ToTensorV2(),
         ]
 
