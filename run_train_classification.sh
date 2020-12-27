@@ -1,9 +1,10 @@
 WORK_DIR=classification
 LR=1e-3
 EPOCHS=10
-BATCH_SIZE=28
-NUM_WORKERS=16
+BATCH_SIZE=64
+NUM_WORKERS=32
 NUM_FOLDS=5
+PRECISION=16
 
 PROJECT=resnext50_32x4d
 
@@ -24,5 +25,6 @@ nohup python classification/train.py \
     --num_epochs=${EPOCHS} \
     --cv_folds=${NUM_FOLDS} \
     --accelerator=ddp \
+    --precision=${PRECISION} \
     --cache_images \
     &> ${EXPERIMENT}.log 2>&1 &
