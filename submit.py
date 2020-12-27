@@ -32,7 +32,7 @@ class BatchGenerator:
         self.cur_index = 0
 
     def __len__(self):
-        return len(self.files)
+        return len(self.files) // self.batch_size + int(len(self.files) % self.batch_size)
 
     def __iter__(self):
         return self
