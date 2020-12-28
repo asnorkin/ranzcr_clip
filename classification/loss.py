@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.metrics import roc_auc_score
+from pytorch_lightning.metrics.functional.classification import auroc
 
 import torch
 from torch import nn
@@ -21,22 +21,21 @@ def to_numpy(arr):
     return arr
 
 
-def batch_roc_auc(targets, probabilities):
-    targets_np, probabilities_np = to_numpy(targets), to_numpy(probabilities)
+def batch_auc_roc(targets, probabilities):
     result = []
     for i in range(11):
-        targets_i, probabilities_i = targets_np[:, i], probabilities_np[:, i]
-        if len(np.unique(targets_i)) == 1:
+        targets_i, probabilities_i = targets[:, i], probabilities[:, i]
+        if torch.unique(targets_i).numel() == 1:
             print(f'Target {i} has only one class. Skip it in ROC AUC.')
             continue
 
-        result.append(roc_auc_score(targets_i, probabilities_i))
+        result.append(auroc(probabilities_i, targets_i))
 
     if len(result) == 0:
         print(f'No targets has valid ROC AUC, result is zero.')
         result = 0.
     else:
-        result = np.mean(result)
+        result = torch.stack(result).mean()
 
     return result
 

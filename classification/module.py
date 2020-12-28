@@ -8,7 +8,7 @@ from torch.optim import AdamW
 from torch.optim.lr_scheduler import OneCycleLR
 
 from classification import modelzoo
-from classification.loss import batch_roc_auc, BCEWithLogitsLoss
+from classification.loss import batch_auc_roc, BCEWithLogitsLoss
 from classification.modelzoo import ModelConfig
 
 
@@ -86,10 +86,10 @@ class XRayClassificationModule(pl.LightningModule):
         self.test_labels = []
 
     def _epoch_end(self, _outputs, stage='val'):
-        self.test_probabilities = torch.cat(self.test_probabilities).cpu().numpy()
-        self.test_labels = torch.cat(self.test_labels).cpu().numpy()
+        self.test_probabilities = torch.cat(self.test_probabilities)
+        self.test_labels = torch.cat(self.test_labels)
 
-        roc_auc = batch_roc_auc(self.test_labels, self.test_probabilities)
+        roc_auc = batch_auc_roc(self.test_labels, self.test_probabilities)
         roc_auc = torch.as_tensor(roc_auc)
 
         if stage == 'val':

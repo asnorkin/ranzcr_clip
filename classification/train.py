@@ -11,7 +11,7 @@ from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 
 from classification.datamodule import XRayClassificationDataModule
-from classification.loss import batch_roc_auc
+from classification.loss import batch_auc_roc
 from classification.module import XRayClassificationModule
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -169,9 +169,9 @@ def train_model(args, fold=-1, data=None):
     # Calculate OOF predictions
     trainer.test(model, test_dataloaders=data.val_dataloader())
     if fold >= 0:
-        return data.val_indices[fold], model.test_probabilities
+        return data.val_indices[fold], model.test_probabilities.cpu().numpy()
     else:
-        return model.test_labels, model.test_probabilities
+        return model.test_labels.cpu().numpy(), model.test_probabilities.cpu().numpy()
 
 
 def train_single_model(args):
@@ -179,7 +179,7 @@ def train_single_model(args):
     val_labels, val_probabilities = train_model(args)
 
     # Verbose
-    oof_roc_auc = batch_roc_auc(targets=val_labels, probabilities=val_probabilities)
+    oof_roc_auc = batch_auc_roc(targets=val_labels, probabilities=val_probabilities)
     print(f'OOF ROC AUC: {oof_roc_auc:.3f}')
 
     # Save val probabilities
@@ -204,7 +204,7 @@ def cross_validate(args):
         oof_probabilities[fold_oof_indices] = fold_oof_probabilities
 
     # Verbose
-    oof_roc_auc = batch_roc_auc(
+    oof_roc_auc = batch_auc_roc(
         targets=torch.as_tensor([item['target'] for item in data.items]),
         probabilities=oof_probabilities)
     print(f'OOF ROC AUC: {oof_roc_auc:.3f}')
