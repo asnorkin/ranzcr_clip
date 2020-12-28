@@ -97,7 +97,10 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
     @classmethod
     def create_from_checkpoints(cls, checkpoints_dir):
         config = ModelConfig(osp.join(checkpoints_dir, 'config.yml'))
-        model_file = [osp.join(checkpoints_dir, fname) for fname in os.listdir(checkpoints_dir)
+        model_files = [osp.join(checkpoints_dir, fname) for fname in os.listdir(checkpoints_dir)
                       if fname.startswith('single')]
-        model = XRayClassificationModule.build_model(config, model_file)
+        if len(model_files) != 1:
+            raise RuntimeError(f'Found not unique single model checkpoint: {model_files}')
+
+        model = XRayClassificationModule.build_model(config, model_files[0])
         return cls(model, config)
