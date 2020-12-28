@@ -72,20 +72,20 @@ class XRayClassificationModule(pl.LightningModule):
     def on_validation_epoch_start(self):
         self._on_epoch_start()
 
-    def on_validation_epoch_end(self):
-        self._on_epoch_end(stage='val')
+    def validation_epoch_end(self, outputs):
+        self._epoch_end(outputs, stage='val')
 
     def on_test_epoch_start(self):
         self._on_epoch_start()
 
-    def on_test_epoch_end(self):
-        self._on_epoch_end(stage='test')
+    def test_epoch_end(self, outputs):
+        self._epoch_end(outputs, stage='test')
 
     def _on_epoch_start(self):
         self.test_probabilities = []
         self.test_labels = []
 
-    def _on_epoch_end(self, stage='val'):
+    def _epoch_end(self, _outputs, stage='val'):
         self.test_probabilities = torch.cat(self.test_probabilities).cpu().numpy()
         self.test_labels = torch.cat(self.test_labels).cpu().numpy()
 
