@@ -152,12 +152,14 @@ def train_model(args, fold=-1, data=None):
     # Fit
     trainer.fit(model, datamodule=data)
 
+    # Load best weights for test
+    model.load_state_dict(torch.load(ckpt_callback.best_model_path)['state_dict'])
+
     # Calculate OOF predictions
+    trainer.test(model, test_dataloaders=data.val_dataloader())
     if fold >= 0:
-        trainer.test(model, test_dataloaders=data.val_dataloader())
         return data.val_indices[fold], model.test_probabilities
     else:
-        trainer.test(model, test_dataloaders=data.val_dataloader())
         return model.test_labels, model.test_probabilities
 
 
