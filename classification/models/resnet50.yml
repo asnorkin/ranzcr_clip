@@ -1,7 +1,7 @@
 model_type: resnet50
 
-input_height: 448
-input_width: 448
+input_height: 512
+input_width: 512
 
 num_classes: 11
 
