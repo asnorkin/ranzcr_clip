@@ -1,3 +1,4 @@
+import os
 import os.path as osp
 
 import albumentations as A
@@ -96,5 +97,7 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
     @classmethod
     def create_from_checkpoints(cls, checkpoints_dir):
         config = ModelConfig(osp.join(checkpoints_dir, 'config.yml'))
-        model = XRayClassificationModule.build_model(config, osp.join(checkpoints_dir, 'single.ckpt'))
+        model_file = [osp.join(checkpoints_dir, fname) for fname in os.listdir(checkpoints_dir)
+                      if fname.startswith('single')]
+        model = XRayClassificationModule.build_model(config, model_file)
         return cls(model, config)
