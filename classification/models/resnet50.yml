@@ -1,3 +1,5 @@
+model_type: resnet50
+
 input_height: 448
 input_width: 448
 
