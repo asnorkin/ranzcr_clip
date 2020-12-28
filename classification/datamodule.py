@@ -5,7 +5,7 @@ from albumentations.pytorch.transforms import ToTensorV2
 
 import pytorch_lightning as pl
 from sklearn.model_selection import GroupKFold, GroupShuffleSplit
-from torch.utils.data import DataLoader
+from torch.utils.data.dataloader import DataLoader
 
 from classification.dataset import XRayDataset
 from classification.modelzoo import ModelConfig
