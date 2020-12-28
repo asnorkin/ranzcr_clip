@@ -140,7 +140,7 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         parser.add_argument('--images_dir', type=str, default='data/train')
 
         # General
-        parser.add_argument('--num_epochs', type=int, default=10)
+        parser.add_argument('--num_epochs', type=int, default=20)
         parser.add_argument('--num_workers', type=int, default=8)
         parser.add_argument('--batch_size', type=int, default=32)
         parser.add_argument('--cv_folds', type=int, default=None)

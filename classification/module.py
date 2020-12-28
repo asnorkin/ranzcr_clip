@@ -43,15 +43,7 @@ class XRayClassificationModule(pl.LightningModule):
             self.model.parameters(), lr=self.hparams.lr,
             weight_decay=self.hparams.weight_decay)
 
-        opt_step_period = self.hparams.batch_size * self.trainer.accumulate_grad_batches
-        steps_per_epoch = ceil(len(self.trainer.datamodule.train_dataset) / opt_step_period)
-        scheduler = {
-            'scheduler': OneCycleLR(
-                optimizer, max_lr=self.hparams.lr, pct_start=self.hparams.lr_pct_start,
-                div_factor=self.hparams.lr_div_factor, steps_per_epoch=steps_per_epoch,
-                epochs=self.hparams.max_epochs),
-            'interval': 'step',
-        }
+        scheduler = self._configure_scheduler(optimizer)
 
         return [optimizer], [scheduler]
 
@@ -128,6 +120,31 @@ class XRayClassificationModule(pl.LightningModule):
         if len(logs) > 0:
             self.log_dict(logs, prog_bar=False, logger=True)
 
+    def _configure_scheduler(self, optimizer):
+        if self.hparams.scheduler == 'onecyclelr':
+            opt_step_period = self.hparams.batch_size * self.trainer.accumulate_grad_batches
+            steps_per_epoch = ceil(len(self.trainer.datamodule.train_dataset) / opt_step_period)
+            scheduler = {
+                'scheduler': OneCycleLR(
+                    optimizer, max_lr=self.hparams.lr, pct_start=self.hparams.lr_pct_start,
+                    div_factor=self.hparams.lr_div_factor, steps_per_epoch=steps_per_epoch,
+                    epochs=self.hparams.max_epochs),
+                'interval': 'step',
+            }
+        elif self.hparams.scheduler == 'reducelronplateau':
+            scheduler = {
+                'scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(
+                    optimizer, factor=self.hparams.lr_factor, patience=self.hparams.lr_patience,
+                    mode=self.hparams.monitor_mode, verbose=True),
+                'monitor': 'val_monitor',
+                'interval': 'epoch',
+                'frequency': self.hparams.check_val_every_n_epoch,
+            }
+        else:
+            raise ValueError(f'Unexpected scheduler type: {self.hparams.scheduler}')
+
+        return scheduler
+
     @staticmethod
     def _get_progress_bar_and_logs(losses, metrics, stage):
         # Progress bar
@@ -153,14 +170,23 @@ class XRayClassificationModule(pl.LightningModule):
         # Loss
         parser.add_argument('--smoothing_epsilon', type=float, default=0.0)
 
-        # Optimizer
+        # Optimizer and scheduler
         parser.add_argument('--weight_decay', type=float, default=1e-6)
+        parser.add_argument('--scheduler', type=str, default='reducelronplateau',
+                            choices=['reducelronplateau', 'onecyclelr'])
 
-        # Learning rate
-        parser.add_argument('--lr', type=float, default=5e-4)
+        # OneCycleLR
+        parser.add_argument('--lr', type=float, default=1e-3)
         parser.add_argument('--lr_pct_start', type=float, default=0.1)
         parser.add_argument('--lr_div_factor', type=float, default=1000.)
         parser.add_argument('--lr_final_div_factor', type=float, default=500.)
+
+        # ReduceLROnPlateau
+        parser.add_argument('--lr_factor', type=float, default=0.1)
+        parser.add_argument('--lr_patience', type=int, default=1)
+
+        # Early stopping
+        parser.add_argument('--es_patience', type=int, default=3)
 
         return parser
 

@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 import numpy as np
 import pytorch_lightning as pl
 import torch
-from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 
 from classification.datamodule import XRayClassificationDataModule
@@ -80,6 +80,14 @@ def checkpoint_callback(args, fold=-1):
         mode=args.monitor_mode)
 
 
+def early_stopping_callback(args):
+    return EarlyStopping(
+        monitor='val_monitor',
+        mode=args.monitor_mode,
+        patience=args.es_patience,
+        verbose=True)
+
+
 def tensorboard_logger(args, fold=-1):
     prefix = f'fold{fold}' if fold >= 0 else ''
     version = f'fold{fold}' if fold >= 0 else None
@@ -141,13 +149,20 @@ def train_model(args, fold=-1, data=None):
     # Create model
     model = XRayClassificationModule(args)
 
-    # Create trainer
+    # Create logger
     logger = tensorboard_logger(args, fold=fold)
+
+    # Create callbacks
+    callbacks = []
     ckpt_callback = checkpoint_callback(args, fold=fold)
-    trainer = pl.Trainer.from_argparse_args(
-        args,
-        callbacks=[ckpt_callback],
-        logger=logger)
+    callbacks.append(ckpt_callback)
+
+    if args.scheduler == 'reducelronplateau':
+        es_callback = early_stopping_callback(args)
+        callbacks.append(es_callback)
+
+    # Create trainer
+    trainer = pl.Trainer.from_argparse_args(args, callbacks=callbacks, logger=logger)
 
     # Fit
     trainer.fit(model, datamodule=data)
