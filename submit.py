@@ -87,7 +87,7 @@ def main(args):
     for batch in tqdm(batch_generator, desc='Make predictions', unit='batch'):
         predictions.append(predictor.predict_batch(batch, preprocess=False, postprocess=False))
         image_uids.extend(batch['instance_uid'])
-    predictions = torch.cat(predictions).cpu().numpy().astype(int)
+    predictions = torch.cat(predictions).cpu().numpy()
 
     # Save submission
     save(predictions, image_uids, args.output_dir)
