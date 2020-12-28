@@ -7,8 +7,9 @@ import torch
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import OneCycleLR
 
+from classification import modelzoo
 from classification.loss import batch_roc_auc, BCEWithLogitsLoss
-from classification.model import ModelConfig, resnet50
+from classification.modelzoo import ModelConfig
 
 
 class XRayClassificationModule(pl.LightningModule):
@@ -165,7 +166,11 @@ class XRayClassificationModule(pl.LightningModule):
 
     @staticmethod
     def build_model(config, checkpoint_file=None):
-        model = resnet50(num_classes=config.num_classes, pretrained=checkpoint_file is None)
+        model_builder = getattr(modelzoo, config.model_type, None)
+        if model_builder is None:
+            raise ValueError(f'Unexpected model_type: {config.model_type}')
+
+        model = model_builder(num_classes=config.num_classes, pretrained=checkpoint_file is None)
 
         if checkpoint_file is not None:
             ckpt = torch.load(checkpoint_file, map_location='cpu')

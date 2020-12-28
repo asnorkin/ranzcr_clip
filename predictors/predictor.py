@@ -6,7 +6,7 @@ import torch
 from albumentations.pytorch.transforms import ToTensorV2
 from torch.backends import cudnn
 
-from classification.model import ModelConfig
+from classification.modelzoo import ModelConfig
 from classification.module import XRayClassificationModule
 
 

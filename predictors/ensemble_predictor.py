@@ -3,7 +3,7 @@ import os.path as osp
 
 import torch
 
-from classification.model import ModelConfig
+from classification.modelzoo import ModelConfig
 from classification.module import XRayClassificationModule
 from predictors.predictor import Predictor, TorchModelPredictor
 

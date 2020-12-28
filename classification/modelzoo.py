@@ -2,6 +2,8 @@ import yaml
 from torch import nn
 from torchvision import models
 
+from efficientnet_pytorch import EfficientNet
+
 
 class ModelConfig(object):
     def __init__(self, config_file):
@@ -33,5 +35,19 @@ def resnet50(num_classes, pretrained=True, **kwargs):
     # Change head
     num_features = model.fc.in_features
     model.fc = nn.Linear(num_features, num_classes)
+
+    return model
+
+
+def efficientnet_b0(num_classes, pretrained=True):
+    params = {
+        'model_name': 'efficientnet-b0',
+        'num_classes': num_classes,
+    }
+
+    if pretrained:
+        model = EfficientNet.from_pretrained(**params)
+    else:
+        model = EfficientNet.from_name(**params)
 
     return model

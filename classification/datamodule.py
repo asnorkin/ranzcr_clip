@@ -8,7 +8,7 @@ from sklearn.model_selection import GroupKFold, GroupShuffleSplit
 from torch.utils.data import DataLoader
 
 from classification.dataset import XRayDataset
-from classification.model import ModelConfig
+from classification.modelzoo import ModelConfig
 
 
 def grouped_train_test_split(items, groups=None, test_size=0.2, random_state=None):
