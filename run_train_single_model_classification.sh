@@ -8,7 +8,7 @@ VAL_SIZE=0.2
 
 PROJECT=efficientnet_b0
 
-EXPERIMENT=${PROJECT}_single_model
+EXPERIMENT=${PROJECT}_single_model_${LR}lr${VAL_SIZE}val${EPOCHS}e${BATCH_SIZE}b
 GPUS=0,1
 
 # Add repo root to PYTHONPATH for imports

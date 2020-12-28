@@ -8,7 +8,7 @@ PRECISION=16
 
 PROJECT=efficientnet_b0
 
-EXPERIMENT=${PROJECT}_${NUM_FOLDS}folds
+EXPERIMENT=${PROJECT}_${LR}lr${NUM_FOLDS}folds${EPOCHS}e${BATCH_SIZE}b
 GPUS=0,1
 
 # Add repo root to PYTHONPATH for imports
