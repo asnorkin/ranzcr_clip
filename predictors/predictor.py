@@ -76,7 +76,7 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
             ToTensorV2(),
         ])
 
-    def predict_batch(self, batch, preprocess=True):
+    def predict_batch(self, batch, preprocess=True, postprocess=False):
         # Preprocess
         if preprocess:
             batch['image'] = torch.stack([
@@ -89,8 +89,9 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
         predictions = self.model.forward(batch['image']).sigmoid()
 
         # Postprocess
-        predictions[predictions < self.config.confidence_threshold] = 0
-        predictions[predictions >= self.config.confidence_threshold] = 1
+        if postprocess:
+            predictions[predictions < self.config.confidence_threshold] = 0
+            predictions[predictions >= self.config.confidence_threshold] = 1
 
         return predictions
 
