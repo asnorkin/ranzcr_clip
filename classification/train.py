@@ -70,6 +70,7 @@ def checkpoint_callback(args, fold=-1):
         os.makedirs(args.checkpoints_dir)
 
     filename = f'fold{fold}' if fold >= 0 else 'single'
+    filename += '-{epoch:02d}'
 
     return ModelCheckpoint(
         dirpath=args.checkpoints_dir,
