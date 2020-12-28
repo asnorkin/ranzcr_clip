@@ -102,12 +102,7 @@ def tensorboard_logger(args, fold=-1):
 
 def archive_checkpoints(args, oof_roc_auc, folds):
     # Archive file
-    archive_name = f'{args.experiment}'
-    if folds:
-        archive_name += f'_{args.lr}lr{args.cv_folds}f{args.num_epochs}e{args.batch_size}b'
-    else:
-        archive_name += f'_single_{args.lr}lr{args.num_epochs}e{args.batch_size}b'
-    archive_name += f'_auc{oof_roc_auc:.3f}'
+    archive_name = f'{args.experiment}_auc{oof_roc_auc:.3f}'
     archive_file = osp.join(args.archives_dir, archive_name + '.zip')
 
     # Create archived checkpoints dir
