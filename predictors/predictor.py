@@ -75,14 +75,16 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
             ToTensorV2(),
         ])
 
-    def predict_batch(self, batch):
-        # Prepare
-        batch['image'] = torch.stack([
-            self.transform(image=batch['image'][i])['image']
-            for i in range(len(batch['image']))
-        ]).to(self.device).to(self.float)
+    def predict_batch(self, batch, preprocess=True):
+        # Preprocess
+        if preprocess:
+            batch['image'] = torch.stack([
+                self.transform(image=batch['image'][i])['image']
+                for i in range(len(batch['image']))
+            ])
 
         # Infer
+        batch['image'] = batch['image'].to(self.device).to(self.float)
         predictions = self.model.forward(batch['image']).sigmoid()
 
         # Postprocess

@@ -99,6 +99,27 @@ class XRayDataset(Dataset):
         return image
 
 
+class InferenceXRayDataset(XRayDataset):
+    @classmethod
+    def load_items(cls, images_dir, cache_images=False):
+        image_files = [osp.join(images_dir, fname) for fname in os.listdir(images_dir)]
+
+        items = []
+        for image_file in tqdm(image_files, desc='Loading dataset', unit='image'):
+            items.append({
+                'image': cls.load_image(image_file) if cache_images else None,
+                'image_file': image_file,
+                'instance_uid': osp.splitext(osp.basename(image_file))[0],
+            })
+
+        return items
+
+    @classmethod
+    def create(cls, images_dir, cache_images=False, transform=None, items_per_epoch=None):
+        items = cls.load_items(images_dir, cache_images=cache_images)
+        return cls(items, classes=None, transform=transform, items_per_epoch=items_per_epoch)
+
+
 class StratifiedLabelSampler(WeightedRandomSampler):
     def __init__(self, items, replacement=True):
         weights = self._calculate_weights(items)

@@ -12,8 +12,8 @@ class EnsemblePredictor(Predictor):
     def __init__(self, predictors):
         self.predictors = predictors
 
-    def predict_batch(self, batch):
-        batch_predictions = [predictor.predict_batch(batch) for predictor in self.predictors]
+    def predict_batch(self, batch, **predict_kwargs):
+        batch_predictions = [predictor.predict_batch(batch, **predict_kwargs) for predictor in self.predictors]
         batch_predictions = self.merge(batch_predictions)
         return batch_predictions
 
