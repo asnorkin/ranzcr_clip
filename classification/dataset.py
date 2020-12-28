@@ -46,12 +46,7 @@ class XRayDataset(Dataset):
         self.buckets = len(self.indices) // self.items_per_epoch + int(len(self.indices) % self.items_per_epoch)
 
     def _load_sample(self, index):
-        if self.buckets > 1:
-            bucket_offset = np.random.randint(0, self.buckets) * self.items_per_epoch
-            index = bucket_offset + index
-            index = self.indices[index % len(self.indices)]
-
-        item = self.items[index]
+        item = self.items[self._index(index)]
 
         sample = {
             'image': item['image'],
@@ -62,6 +57,14 @@ class XRayDataset(Dataset):
             sample['image'] = self.load_image(item['image_file'])
 
         return sample
+
+    def _index(self, index):
+        if self.buckets > 1:
+            bucket_offset = np.random.randint(0, self.buckets) * self.items_per_epoch
+            index = bucket_offset + index
+            index = self.indices[index % len(self.indices)]
+
+        return index
 
     @classmethod
     def load_items(cls, labels_csv, images_dir, cache_images=False):
@@ -100,6 +103,19 @@ class XRayDataset(Dataset):
 
 
 class InferenceXRayDataset(XRayDataset):
+    def _load_sample(self, index):
+        item = self.items[self._index(index)]
+
+        sample = {
+            'image': item['image'],
+            'instance_uid': item['instance_uid'],
+        }
+
+        if sample['image'] is None:
+            sample['image'] = self.load_image(item['image_file'])
+
+        return sample
+
     @classmethod
     def load_items(cls, images_dir, cache_images=False):
         image_files = [osp.join(images_dir, fname) for fname in os.listdir(images_dir)]
