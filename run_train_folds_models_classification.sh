@@ -6,9 +6,9 @@ NUM_WORKERS=32
 NUM_FOLDS=5
 PRECISION=16
 
-PROJECT=resnext50_32x4d
+PROJECT=efficientnet_b0
 
-EXPERIMENT=${PROJECT}
+EXPERIMENT=${PROJECT}_${NUM_FOLDS}folds
 GPUS=0,1
 
 # Add repo root to PYTHONPATH for imports
