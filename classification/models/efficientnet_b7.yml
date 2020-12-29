@@ -1,0 +1,8 @@
+model_type: efficientnet_b7
+
+input_height: 600
+input_width: 600
+
+num_classes: 11
+
+confidence_threshold: 0.5

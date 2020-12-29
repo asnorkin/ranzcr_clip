@@ -42,10 +42,25 @@ def resnet50(num_classes, pretrained=True, **kwargs):
 def efficientnet_b0(num_classes, pretrained=True):
     params = {
         'model_name': 'efficientnet-b0',
-        'num_classes': num_classes,
         'dropout_rate': 0.5,
         'drop_connect_rate': 0.5,
     }
+
+    return _efficientnet(num_classes, pretrained=pretrained, **params)
+
+
+def efficientnet_b7(num_classes, pretrained=True):
+    params = {
+        'model_name': 'efficientnet-b7',
+        'dropout_rate': 0.7,
+        'drop_connect_rate': 0.7,
+    }
+
+    return _efficientnet(num_classes, pretrained=pretrained, **params)
+
+
+def _efficientnet(num_classes, pretrained=True, **params):
+    params['num_classes'] = num_classes
 
     if pretrained:
         model = EfficientNet.from_pretrained(**params)
