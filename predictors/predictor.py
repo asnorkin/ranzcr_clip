@@ -78,7 +78,7 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
         ])
 
     def predict_batch(self, batch, preprocess=False, output='probabilities', tta=True):
-        assert output in {'rank', 'probabilities', 'binary'}
+        assert output in {'logits', 'probabilities', 'binary'}
 
         # Preprocess
         if preprocess:
@@ -94,14 +94,16 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
         # TTA
         if tta:
             logits_hflip = self.model.forward(torch.flip(batch['image'], dims=(-1,)))
-            if output == 'rank':
-                logits = rank_average(logits, logits_hflip)
+            if output == 'logits':
+                logits = logits, logits_hflip
             else:
                 logits = (logits + logits_hflip) / 2
 
+        if output == 'logits':
+            return logits
+
         # Postprocess
-        if output != 'rank':
-            predictions = torch.sigmoid(logits)
+        predictions = torch.sigmoid(logits)
 
         if output == 'binary':
             predictions[predictions < self.config.confidence_threshold] = 0

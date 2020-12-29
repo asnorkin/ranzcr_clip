@@ -9,6 +9,7 @@ from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
 
 from classification.dataset import InferenceXRayDataset
+from classification.loss import rank_average
 from predictors import FoldPredictor, TorchModelPredictor
 
 
@@ -86,9 +87,13 @@ def main(args):
     # Make predictions
     predictions, image_uids = [], []
     for batch in tqdm(batch_generator, desc='Make predictions', unit='batch'):
-        predictions.append(predictor.predict_batch(batch, tta=args.tta))
+        batch_logits = predictor.predict_batch(batch, tta=args.tta, output='logits')
+        predictions.append(torch.stack(batch_logits))
         image_uids.extend(batch['instance_uid'])
-    predictions = torch.cat(predictions).cpu().numpy()
+
+    # Aggregate
+    predictions = torch.cat(predictions, dim=1)
+    predictions = rank_average(*predictions)
 
     # Save submission
     save(predictions, image_uids, args.output_dir)
