@@ -4,7 +4,8 @@ import os.path as osp
 import cv2 as cv
 import numpy as np
 import pandas as pd
-from torch.utils.data import Dataset, WeightedRandomSampler
+from torch.utils.data.dataset import Dataset
+from torch.utils.data.sampler import WeightedRandomSampler
 from tqdm import tqdm
 
 
@@ -13,16 +14,14 @@ def read_dirs(dirpath):
 
 
 class XRayDataset(Dataset):
-    def __init__(self, items, classes, transform=None, items_per_epoch=None, indices=None):
+    def __init__(self, items, classes, transform=None, indices=None):
         self.items = items
         self.classes = classes
         self.transform = transform
         self.indices = indices or list(range(len(items)))
-        self.items_per_epoch = items_per_epoch or len(self.indices)
-        self.buckets = len(self.indices) // self.items_per_epoch + int(len(self.indices) % self.items_per_epoch)
 
     def __len__(self):
-        return self.items_per_epoch
+        return len(self.indices)
 
     def __getitem__(self, index):
         if index >= len(self):
@@ -38,12 +37,7 @@ class XRayDataset(Dataset):
     def setup_indices(self, indices=None):
         if indices is None:
             indices = list(range(len(self.items)))
-
-        if self.items_per_epoch == len(self.indices):
-            self.items_per_epoch = len(indices)
-
         self.indices = indices
-        self.buckets = len(self.indices) // self.items_per_epoch + int(len(self.indices) % self.items_per_epoch)
 
     def _load_sample(self, index):
         item = self.items[self._index(index)]
@@ -59,12 +53,7 @@ class XRayDataset(Dataset):
         return sample
 
     def _index(self, index):
-        if self.buckets > 1:
-            bucket_offset = np.random.randint(0, self.buckets) * self.items_per_epoch
-            index = bucket_offset + index
-            index = self.indices[index % len(self.indices)]
-
-        return index
+        return self.indices[index]
 
     @classmethod
     def load_items(cls, labels_csv, images_dir, cache_images=False):
@@ -90,9 +79,9 @@ class XRayDataset(Dataset):
         return items, classes
 
     @classmethod
-    def create(cls, labels_csv, images_dir, cache_images=False, transform=None, items_per_epoch=None):
+    def create(cls, labels_csv, images_dir, cache_images=False, transform=None):
         items, classes = cls.load_items(labels_csv, images_dir, cache_images=cache_images)
-        return cls(items, classes, transform=transform, items_per_epoch=items_per_epoch)
+        return cls(items, classes, transform=transform)
 
     @classmethod
     def load_image(cls, image_file):
@@ -131,9 +120,9 @@ class InferenceXRayDataset(XRayDataset):
         return items
 
     @classmethod
-    def create(cls, images_dir, cache_images=False, transform=None, items_per_epoch=None):
+    def create(cls, images_dir, cache_images=False, transform=None):
         items = cls.load_items(images_dir, cache_images=cache_images)
-        return cls(items, classes=None, transform=transform, items_per_epoch=items_per_epoch)
+        return cls(items, classes=None, transform=transform)
 
 
 class StratifiedLabelSampler(WeightedRandomSampler):

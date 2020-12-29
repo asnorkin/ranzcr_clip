@@ -67,13 +67,8 @@ class XRayClassificationDataModule(pl.LightningDataModule):
 
         # Transforms
         augmentations = [
-            A.RandomResizedCrop(height=self.config.input_height, width=self.config.input_width,
-                                scale=(0.85, 1.0)),
+            A.RandomResizedCrop(height=self.config.input_height, width=self.config.input_width, scale=(0.85, 1.0)),
             A.HorizontalFlip(),
-            # A.RandomBrightnessContrast(),
-            # A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit=0.3, val_shift_limit=0.2),
-            # A.MultiplicativeNoise(multiplier=(0.9, 1.1), per_channel=True, elementwise=True),
-            # A.ImageCompression(quality_lower=50, quality_upper=100),
         ]
 
         post_transforms = [
@@ -83,28 +78,12 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         ]
 
         # Train dataset
-        train_items_per_epoch = self.hparams.train_steps_per_epoch
-        if train_items_per_epoch is not None:
-            train_items_per_epoch *= self.hparams.batch_size
-
         train_transform = A.Compose(augmentations + post_transforms)
-        self.train_dataset = XRayDataset(
-            train_items,
-            self.classes,
-            transform=train_transform,
-            items_per_epoch=train_items_per_epoch)
+        self.train_dataset = XRayDataset(train_items, self.classes, transform=train_transform)
 
         # Val dataset
-        val_items_per_epoch = self.hparams.val_steps_per_epoch
-        if val_items_per_epoch is not None:
-            val_items_per_epoch *= self.hparams.batch_size
-
         val_transform = A.Compose(post_transforms)
-        self.val_dataset = XRayDataset(
-            val_items,
-            self.classes,
-            transform=val_transform,
-            items_per_epoch=val_items_per_epoch)
+        self.val_dataset = XRayDataset(val_items, self.classes, transform=val_transform)
 
     def setup_fold(self, fold):
         self.train_dataset.setup_indices(self.train_indices[fold])
@@ -146,8 +125,6 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         parser.add_argument('--cv_folds', type=int, default=None)
         parser.add_argument('--val_size', type=float, default=None,
                             help='val_size=None means use all train set without augmentations for validation')
-        parser.add_argument('--train_steps_per_epoch', type=int, default=None)
-        parser.add_argument('--val_steps_per_epoch', type=int, default=None)
         parser.add_argument('--cache_images', action='store_true')
 
         return parser
