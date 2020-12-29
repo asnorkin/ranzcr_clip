@@ -94,6 +94,7 @@ def main(args):
     # Aggregate
     predictions = torch.cat(predictions, dim=1)
     predictions = rank_average(*predictions)
+    predictions = predictions / predictions.max()
     predictions = predictions.cpu().numpy()
 
     # Save submission
