@@ -44,7 +44,7 @@ def rank_average(*tensors):
     assert len(tensors) > 1
 
     n_objects = tensors[0].size(0)
-    calibrated_values = torch.linspace(0, 1, steps=n_objects)
+    calibrated_values = torch.linspace(0, 1, steps=n_objects).to(tensors[0])
 
     result = torch.zeros_like(tensors[0])
     for tensor in tensors:
