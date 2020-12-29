@@ -70,7 +70,7 @@ def checkpoint_callback(args, fold=-1):
         os.makedirs(args.checkpoints_dir)
 
     filename = f'fold{fold}' if fold >= 0 else 'single'
-    filename += '-{epoch:02d}'
+    filename += '-{epoch:02d}-{val_roc_auc:.3f}'
 
     return ModelCheckpoint(
         dirpath=args.checkpoints_dir,
@@ -174,6 +174,7 @@ def train_model(args, fold=-1, data=None):
     # Calculate OOF predictions
     trainer.test(model, test_dataloaders=data.val_dataloader())
     if fold >= 0:
+        # TODO: fix numpy
         return data.val_indices[fold], model.test_probabilities.cpu().numpy()
     else:
         return model.test_labels.cpu().numpy(), model.test_probabilities.cpu().numpy()
