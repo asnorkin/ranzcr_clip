@@ -87,13 +87,11 @@ def main(args):
     # Make predictions
     predictions, image_uids = [], []
     for batch in tqdm(batch_generator, desc='Make predictions', unit='batch'):
-        batch_logits = predictor.predict_batch(batch, tta=args.tta, output='logits')
-        predictions.append(torch.stack(batch_logits))
+        predictions.append(predictor.predict_batch(batch, tta=args.tta))
         image_uids.extend(batch['instance_uid'])
 
     # Aggregate
-    predictions = torch.cat(predictions, dim=1).to(torch.float32)
-    predictions = rank_average(*predictions)
+    predictions = torch.cat(predictions).to(torch.float32)
     predictions = predictions.cpu().numpy()
 
     # Save submission
