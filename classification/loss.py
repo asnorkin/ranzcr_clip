@@ -40,6 +40,21 @@ def batch_auc_roc(targets, probabilities):
     return result
 
 
+def rank_average(*tensors):
+    assert len(tensors) > 1
+
+    n_objects = tensors[0].size(0)
+    calibrated_values = torch.linspace(0, 1, steps=n_objects)
+
+    result = torch.zeros_like(tensors[0])
+    for tensor in tensors:
+        result += calibrated_values[torch.argsort(tensor, dim=0)]
+
+    result /= len(tensors)
+
+    return result
+
+
 class LabelSmoothingCrossEntropy(nn.Module):
     def __init__(self, epsilon: float = 0.1, reduction='mean'):
         super().__init__()

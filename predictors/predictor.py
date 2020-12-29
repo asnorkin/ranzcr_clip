@@ -7,6 +7,7 @@ import torch
 from albumentations.pytorch.transforms import ToTensorV2
 from torch.backends import cudnn
 
+from classification.loss import rank_average
 from classification.modelzoo import ModelConfig
 from classification.module import XRayClassificationModule
 
@@ -76,7 +77,9 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
             ToTensorV2(),
         ])
 
-    def predict_batch(self, batch, preprocess=True, postprocess=False):
+    def predict_batch(self, batch, preprocess=False, output='rank', tta=True):
+        assert output in {'rank', 'probabilities', 'binary'}
+
         # Preprocess
         if preprocess:
             batch['image'] = torch.stack([
@@ -88,8 +91,15 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
         batch['image'] = batch['image'].to(self.device).to(self.float)
         predictions = self.model.forward(batch['image']).sigmoid()
 
+        # TTA
+        predictions_hflip = self.model.forward(torch.flip(batch['image'], dims=(-1,))).sigmoid()
+        if output == 'rank':
+            predictions = rank_average(predictions, predictions_hflip)
+        else:
+            predictions = (predictions + predictions_hflip) / 2
+
         # Postprocess
-        if postprocess:
+        if output == 'binary':
             predictions[predictions < self.config.confidence_threshold] = 0
             predictions[predictions >= self.config.confidence_threshold] = 1
 
@@ -99,7 +109,7 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
     def create_from_checkpoints(cls, checkpoints_dir):
         config = ModelConfig(osp.join(checkpoints_dir, 'config.yml'))
         model_files = [osp.join(checkpoints_dir, fname) for fname in os.listdir(checkpoints_dir)
-                      if fname.startswith('single')]
+                       if fname.startswith('single')]
         if len(model_files) != 1:
             raise RuntimeError(f'Found not unique single model checkpoint: {model_files}')
 

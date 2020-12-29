@@ -3,6 +3,7 @@ import os.path as osp
 
 import torch
 
+from classification.loss import rank_average
 from classification.modelzoo import ModelConfig
 from classification.module import XRayClassificationModule
 from predictors.predictor import Predictor, TorchModelPredictor
@@ -22,8 +23,11 @@ class EnsemblePredictor(Predictor):
 
 
 class FoldPredictor(EnsemblePredictor):
-    def merge(self, batch_predictions):
-        return torch.cat(batch_predictions).mean(dim=0)
+    def merge(self, batch_predictions, output='rank'):
+        if output == 'rank':
+            return rank_average(batch_predictions)
+        else:
+            return torch.cat(batch_predictions).mean(dim=0)
 
     @classmethod
     def create_from_checkpoints(cls, checkpoints_dir):

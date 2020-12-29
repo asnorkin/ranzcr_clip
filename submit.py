@@ -21,6 +21,7 @@ def config_args():
     ap.add_argument('--batch_size', type=int, default=16)
     ap.add_argument('--num_workers', type=int, default=8)
     ap.add_argument('--predictor_type', type=str, default='fold', choices=['fold', 'single'])
+    ap.add_argument('--tta', action='store_true')
 
     args = ap.parse_args()
 
@@ -85,7 +86,7 @@ def main(args):
     # Make predictions
     predictions, image_uids = [], []
     for batch in tqdm(batch_generator, desc='Make predictions', unit='batch'):
-        predictions.append(predictor.predict_batch(batch, preprocess=False, postprocess=False))
+        predictions.append(predictor.predict_batch(batch, tta=args.tta))
         image_uids.extend(batch['instance_uid'])
     predictions = torch.cat(predictions).cpu().numpy()
 
