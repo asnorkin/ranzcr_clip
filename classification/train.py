@@ -138,6 +138,9 @@ def train_model(args, fold=-1, data=None):
     # Set up seed
     pl.seed_everything(seed=args.seed + fold)
 
+    # Set up fold
+    args.fold = fold
+
     # If no data provided create it
     if data is None:
         data = XRayClassificationDataModule(args)
