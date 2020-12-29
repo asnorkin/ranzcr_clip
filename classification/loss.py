@@ -1,4 +1,3 @@
-import numpy as np
 from pytorch_lightning.metrics.functional.classification import auroc
 
 import torch
