@@ -101,7 +101,7 @@ def tensorboard_logger(args, fold=-1):
 
 
 def lr_monitor_callback():
-    return LearningRateMonitor(log_momentum=True)
+    return LearningRateMonitor(log_momentum=False)
 
 
 def archive_checkpoints(args, oof_roc_auc, folds):
