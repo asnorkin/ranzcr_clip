@@ -2,7 +2,7 @@
 
 ## Models
 
-#### Model 0 (baseline): efficientnet_b0 512x512, dropout=0.5, VAL_AUC: 0.965, LB: 0.938
+#### Model 0 (baseline): efficientnet_b0 512x512, dropout=0.5, VAL_AUC: 0.939, LB: 0.940, EPOCHS: 23
 
 ###### Params
 dropout_rate=0.5  
@@ -22,6 +22,7 @@ A.HorizontalFlip()
 - [x] hflip TTA;  :white_check_mark:VAL_AUC: +0.001, :white_check_mark:LB: +0.002
 - [ ] label smoothing
 - [ ] more augmentations
+- [ ] different heads
 - [ ] rank_average
 - [ ] 5 folds ensemble
 - [ ] bigger efficientnet
