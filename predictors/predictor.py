@@ -92,14 +92,17 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
         predictions = self.model.forward(batch['image'])
 
         # TTA
-        predictions_hflip = self.model.forward(torch.flip(batch['image'], dims=(-1,)))
-        if output == 'rank':
-            predictions = rank_average(predictions, predictions_hflip)
-        else:
-            predictions = (predictions + predictions_hflip) / 2
+        if tta:
+            predictions_hflip = self.model.forward(torch.flip(batch['image'], dims=(-1,)))
+            if output == 'rank':
+                predictions = rank_average(predictions, predictions_hflip)
+            else:
+                predictions = (predictions + predictions_hflip) / 2
 
         # Postprocess
-        torch.sigmoid_(predictions)
+        if output != 'rank':
+            torch.sigmoid_(predictions)
+
         if output == 'binary':
             predictions[predictions < self.config.confidence_threshold] = 0
             predictions[predictions >= self.config.confidence_threshold] = 1
