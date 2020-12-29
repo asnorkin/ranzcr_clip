@@ -1,4 +1,4 @@
-model_type: efficientnet_b0
+model_type: efficientnet_b3
 
 input_height: 512
 input_width: 512
