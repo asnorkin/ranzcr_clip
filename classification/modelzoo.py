@@ -49,6 +49,16 @@ def efficientnet_b0(num_classes, pretrained=True):
     return _efficientnet(num_classes, pretrained=pretrained, **params)
 
 
+def efficientnet_b3(num_classes, pretrained=True):
+    params = {
+        'model_name': 'efficientnet-b3',
+        'dropout_rate': 0.6,
+        'drop_connect_rate': 0.6,
+    }
+
+    return _efficientnet(num_classes, pretrained=pretrained, **params)
+
+
 def efficientnet_b7(num_classes, pretrained=True):
     params = {
         'model_name': 'efficientnet-b7',
