@@ -126,8 +126,6 @@ class XRayClassificationModule(pl.LightningModule):
             self.log_dict(logs, prog_bar=False, logger=True, sync_dist=True)
 
     def _configure_scheduler(self, optimizer):
-        prefix = f'fold{self.hparams.fold}' if self.hparams.fold >= 0 else 'single'
-        log_name = f'{prefix}_{optimizer.__class__.__name__}'
         if self.hparams.scheduler == 'onecyclelr':
             opt_step_period = self.hparams.batch_size * self.trainer.accumulate_grad_batches
             steps_per_epoch = ceil(len(self.trainer.datamodule.train_dataset) / opt_step_period)
@@ -137,7 +135,6 @@ class XRayClassificationModule(pl.LightningModule):
                     div_factor=self.hparams.lr_div_factor, steps_per_epoch=steps_per_epoch,
                     epochs=self.hparams.max_epochs),
                 'interval': 'step',
-                'name': log_name,
             }
         elif self.hparams.scheduler == 'reducelronplateau':
             scheduler = {
@@ -147,7 +144,6 @@ class XRayClassificationModule(pl.LightningModule):
                 'monitor': 'val_monitor',
                 'interval': 'epoch',
                 'frequency': self.hparams.check_val_every_n_epoch,
-                'name': log_name,
             }
         else:
             raise ValueError(f'Unexpected scheduler type: {self.hparams.scheduler}')
@@ -163,7 +159,7 @@ class XRayClassificationModule(pl.LightningModule):
 
         # Logs
         logs = dict()
-        if len(logs) > 0:
+        if len(losses) > 0:
             logs.update({f'losses/{stage}_{loss_name}': loss_value
                          for loss_name, loss_value in losses.items()})
         if len(metrics) > 0:

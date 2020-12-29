@@ -90,12 +90,10 @@ def early_stopping_callback(args):
 
 
 def tensorboard_logger(args, fold=-1):
-    prefix = f'fold{fold}' if fold >= 0 else ''
     version = f'fold{fold}' if fold >= 0 else None
     return TensorBoardLogger(
         save_dir=args.log_dir,
         name=args.experiment,
-        prefix=prefix,
         version=version,
         default_hp_metric=False)
 
