@@ -175,10 +175,9 @@ def train_model(args, fold=-1, data=None):
     # Calculate OOF predictions
     trainer.test(model, test_dataloaders=data.val_dataloader())
     if fold >= 0:
-        # TODO: fix numpy
-        return data.val_indices[fold], model.test_probabilities.cpu().numpy()
+        return data.val_indices[fold], model.test_probabilities
     else:
-        return model.test_labels.cpu().numpy(), model.test_probabilities.cpu().numpy()
+        return model.test_labels, model.test_probabilities
 
 
 def train_single_model(args):
@@ -202,7 +201,7 @@ def cross_validate(args):
     data.setup()
 
     # OOF probabilities placeholder
-    oof_probabilities = np.zeros((len(data.items), 11))
+    oof_probabilities = torch.zeros((len(data.items), 11))
 
     # Folds loop
     for fold in range(args.cv_folds):
@@ -211,9 +210,8 @@ def cross_validate(args):
         oof_probabilities[fold_oof_indices] = fold_oof_probabilities
 
     # Verbose
-    oof_roc_auc = batch_auc_roc(
-        targets=torch.as_tensor([item['target'] for item in data.items]),
-        probabilities=oof_probabilities)
+    oof_targets = torch.as_tensor([item['target'] for item in data.items])
+    oof_roc_auc = batch_auc_roc(targets=oof_targets, probabilities=oof_probabilities)
     print(f'OOF ROC AUC: {oof_roc_auc:.3f}')
 
     # Save OOF probabilities
