@@ -14,8 +14,9 @@ A.HorizontalFlip()
 
 ## Bugs and features
 - [x] validation and test TTA
+- [ ] infinite increase val_roc_auc
+- [ ] tensorboard names
 - [ ] test synchronization for multi-gpu
-- [ ] folds data leak
 
 ## Ideas to improve the model:
 - [x] hflip TTA;  :white_check_mark:VAL_AUC: +0.001, :white_check_mark:LB: +0.002
