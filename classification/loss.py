@@ -32,7 +32,7 @@ def batch_auc_roc(targets, probabilities):
 
     if len(result) == 0:
         print(f'No targets has valid ROC AUC, result is zero.')
-        result = 0.
+        result = torch.tensor(0.).to(targets)
     else:
         result = torch.stack(result).mean()
 
