@@ -129,7 +129,8 @@ def archive_checkpoints(args, oof_roc_auc, folds):
     with zipfile.ZipFile(archive_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
         zipf.write(args.config_file, arcname='config.yml')
         for fname in checkpoints_files:
-            zipf.write(osp.join(args.checkpoints_dir, fname), arcname=fname)
+            arcname = fname.replace('=', '')  # Remove kaggle illegal character =
+            zipf.write(osp.join(args.checkpoints_dir, fname), arcname=arcname)
 
 
 def train_model(args, fold=-1, data=None):
