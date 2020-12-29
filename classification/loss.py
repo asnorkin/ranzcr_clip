@@ -44,9 +44,7 @@ def rank_average(*tensors):
 
     result = torch.zeros_like(tensors[0])
     for tensor in tensors:
-        result += torch.argsort(tensor, dim=0)
-
-    result /= len(tensors)
+        result += torch.argsort(tensor, dim=0) / len(tensors)
 
     return result
 
