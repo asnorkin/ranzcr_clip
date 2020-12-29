@@ -92,9 +92,8 @@ def main(args):
         image_uids.extend(batch['instance_uid'])
 
     # Aggregate
-    predictions = torch.cat(predictions, dim=1)
+    predictions = torch.cat(predictions, dim=1).to(torch.float32)
     predictions = rank_average(*predictions)
-    predictions = predictions / predictions.max()
     predictions = predictions.cpu().numpy()
 
     # Save submission

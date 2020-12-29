@@ -42,9 +42,11 @@ def batch_auc_roc(targets, probabilities):
 def rank_average(*tensors):
     assert len(tensors) > 1
 
+    norm = len(tensors) * len(tensors[0])
+
     result = torch.zeros_like(tensors[0])
     for tensor in tensors:
-        result += torch.argsort(tensor, dim=0) / len(tensors)
+        result += torch.argsort(tensor, dim=0) / norm
 
     return result
 
