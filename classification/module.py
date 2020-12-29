@@ -62,12 +62,10 @@ class XRayClassificationModule(pl.LightningModule):
         return self._step(batch, batch_idx, stage='train')
 
     def validation_step(self, batch, batch_idx):
-        with torch.no_grad():
-            return self._step(batch, batch_idx, stage='val')
+        return self._step(batch, batch_idx, stage='val')
 
     def test_step(self, batch, batch_idx):
-        with torch.no_grad():
-            return self._step(batch, batch_idx, stage='test')
+        return self._step(batch, batch_idx, stage='test')
 
     def on_validation_epoch_start(self):
         self._on_epoch_start()
