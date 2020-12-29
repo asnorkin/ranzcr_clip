@@ -27,4 +27,5 @@ nohup python classification/train.py \
     --accelerator=ddp \
     --precision=${PRECISION} \
     --cache_images \
+    --use_tta \
     &> ${EXPERIMENT}.log 2>&1 &
