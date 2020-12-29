@@ -105,11 +105,18 @@ class XRayClassificationModule(pl.LightningModule):
         self._log(losses, metrics, stage)
 
         if stage in {'val', 'test'}:
+            if self.hparams.use_tta:
+                logits = self._tta(batch, logits)
+
             probabilities = logits.sigmoid()
             self.test_probabilities.append(probabilities)
             self.test_labels.append(batch['target'])
 
         return losses['total']
+
+    def _tta(self, batch, logits):
+        logits_hflip = self.forward(torch.flip(batch['image'], dims=(-1,)))
+        return (logits + logits_hflip) / 2
 
     def _log(self, losses, metrics, stage):
         progress_bar, logs = self._get_progress_bar_and_logs(losses, metrics, stage)
@@ -191,6 +198,9 @@ class XRayClassificationModule(pl.LightningModule):
 
         # Early stopping
         parser.add_argument('--es_patience', type=int, default=3)
+
+        # TTA
+        parser.add_argument('--use_tta', action='store_true')
 
         return parser
 

@@ -89,19 +89,19 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
 
         # Infer
         batch['image'] = batch['image'].to(self.device).to(self.float)
-        predictions = self.model.forward(batch['image'])
+        logits = self.model.forward(batch['image'])
 
         # TTA
         if tta:
-            predictions_hflip = self.model.forward(torch.flip(batch['image'], dims=(-1,)))
+            logits_hflip = self.model.forward(torch.flip(batch['image'], dims=(-1,)))
             if output == 'rank':
-                predictions = rank_average(predictions, predictions_hflip)
+                logits = rank_average(logits, logits_hflip)
             else:
-                predictions = (predictions + predictions_hflip) / 2
+                logits = (logits + logits_hflip) / 2
 
         # Postprocess
         if output != 'rank':
-            torch.sigmoid_(predictions)
+            predictions = torch.sigmoid(logits)
 
         if output == 'binary':
             predictions[predictions < self.config.confidence_threshold] = 0
