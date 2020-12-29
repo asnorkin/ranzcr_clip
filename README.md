@@ -20,9 +20,9 @@ A.HorizontalFlip()
 
 ## Ideas to improve the model:
 - [x] hflip TTA;  :white_check_mark:VAL_AUC: +0.001, :white_check_mark:LB: +0.002
-- [ ] label smoothing
+- [x] label smoothing;   :x:VAL_AUC: -0.1 for eps=0.05, may be better for eps=0.001
 - [ ] more augmentations
 - [ ] different heads
-- [ ] rank_average
+- [x] rank_average;   :x:VAL_AUC: -0.42, didn't work for two predictions, may be better for ensemble
 - [ ] 5 folds ensemble
 - [ ] bigger efficientnet
