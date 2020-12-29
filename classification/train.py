@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 import numpy as np
 import pytorch_lightning as pl
 import torch
-from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 
 from classification.datamodule import XRayClassificationDataModule
@@ -100,6 +100,10 @@ def tensorboard_logger(args, fold=-1):
         default_hp_metric=False)
 
 
+def lr_monitor_callback():
+    return LearningRateMonitor(log_momentum=True)
+
+
 def archive_checkpoints(args, oof_roc_auc, folds):
     # Archive file
     archive_name = f'{args.experiment}_auc{oof_roc_auc:.3f}'
@@ -152,10 +156,10 @@ def train_model(args, fold=-1, data=None):
     callbacks = []
     ckpt_callback = checkpoint_callback(args, fold=fold)
     callbacks.append(ckpt_callback)
+    callbacks.append(lr_monitor_callback())
 
     if args.scheduler == 'reducelronplateau':
-        es_callback = early_stopping_callback(args)
-        callbacks.append(es_callback)
+        callbacks.append(early_stopping_callback(args))
 
     # Create trainer
     trainer = pl.Trainer.from_argparse_args(args, callbacks=callbacks, logger=logger)
