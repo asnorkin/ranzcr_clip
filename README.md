@@ -15,7 +15,7 @@ A.HorizontalFlip()
 ## Bugs and features
 - [x] validation and test TTA
 - [ ] infinite increase val_roc_auc
-- [ ] tensorboard names
+- [x] tensorboard names
 - [ ] test synchronization for multi-gpu
 
 ## Ideas to improve the model:
