@@ -22,6 +22,7 @@ A.HorizontalFlip()
 - [x] hflip TTA;  :white_check_mark:VAL_AUC: +0.001, :white_check_mark:LB: +0.002
 - [ ] label smoothing
 - [ ] more augmentations
+- [ ] different heads
 - [ ] rank_average
 - [ ] 5 folds ensemble
 - [ ] bigger efficientnet
