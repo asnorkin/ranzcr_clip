@@ -13,12 +13,12 @@ A.RandomResizedCrop(height=512, width=512, scale=(0.85, 1.0))
 A.HorizontalFlip()  
 
 ## Bugs and features
-- [ ] TTA for validation and test
+- [x] validation and test TTA
 - [ ] test synchronization for multi-gpu
 - [ ] folds data leak
 
 ## Ideas to improve the model:
-- [ ] hflip TTA
+- [x] hflip TTA;  :white_check_mark:VAL_AUC: +0.001, :white_check_mark:LB: +0.002
 - [ ] more augmentations
 - [ ] rank_average
 - [ ] 5 folds ensemble
