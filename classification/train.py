@@ -90,7 +90,7 @@ def early_stopping_callback(args):
 
 
 def tensorboard_logger(args, fold=-1):
-    version = f'fold{fold}' if fold >= 0 else None
+    version = f'fold{fold}' if fold >= 0 else 'single'
     return TensorBoardLogger(
         save_dir=args.log_dir,
         name=args.experiment,
