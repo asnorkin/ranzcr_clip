@@ -133,6 +133,7 @@ data/
 logs/
 checkpoints/
 mlruns/
+archived_checkpoints/
 
 kaggle_ideas/
 .idea/
