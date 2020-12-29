@@ -100,7 +100,9 @@ class XRayClassificationModule(pl.LightningModule):
     def _step(self, batch, _batch_idx, stage):
         logits = self.forward(batch['image'])
         losses, metrics = self.loss(logits, batch)
-        self._log(losses, metrics, stage)
+
+        if stage in {'train', 'val'}:
+            self._log(losses, metrics, stage)
 
         if stage in {'val', 'test'}:
             if self.hparams.use_tta:
