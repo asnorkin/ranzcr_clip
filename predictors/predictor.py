@@ -77,7 +77,7 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
             ToTensorV2(),
         ])
 
-    def predict_batch(self, batch, preprocess=False, output='rank', tta=True):
+    def predict_batch(self, batch, preprocess=False, output='probabilities', tta=True):
         assert output in {'rank', 'probabilities', 'binary'}
 
         # Preprocess
@@ -89,16 +89,17 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
 
         # Infer
         batch['image'] = batch['image'].to(self.device).to(self.float)
-        predictions = self.model.forward(batch['image']).sigmoid()
+        predictions = self.model.forward(batch['image'])
 
         # TTA
-        predictions_hflip = self.model.forward(torch.flip(batch['image'], dims=(-1,))).sigmoid()
+        predictions_hflip = self.model.forward(torch.flip(batch['image'], dims=(-1,)))
         if output == 'rank':
             predictions = rank_average(predictions, predictions_hflip)
         else:
             predictions = (predictions + predictions_hflip) / 2
 
         # Postprocess
+        torch.sigmoid_(predictions)
         if output == 'binary':
             predictions[predictions < self.config.confidence_threshold] = 0
             predictions[predictions >= self.config.confidence_threshold] = 1
