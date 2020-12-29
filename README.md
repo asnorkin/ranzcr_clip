@@ -2,7 +2,7 @@
 
 ## Models
 
-#### Model 0 (baseline): efficientnet_b0 512x512, dropout=0.5, VAL_AUC: 0.965, LB: 0.938
+#### Model 0 (baseline): efficientnet_b0 512x512, dropout=0.5, VAL_AUC: 0.939, LB: 0.940, EPOCHS: 23
 
 ###### Params
 dropout_rate=0.5  
