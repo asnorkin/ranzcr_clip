@@ -189,10 +189,10 @@ def train_single_model(args):
     print(f'OOF ROC AUC: {oof_roc_auc:.3f}')
 
     # Save val probabilities
-    np.save(osp.join(args.checkpoints_dir, 'val_probabilities.npy'), val_probabilities)
+    np.save(osp.join(args.checkpoints_dir, 'val_probabilities.npy'), val_probabilities.cpu().numpy())
 
     # Save checkpoints
-    archive_checkpoints(args, oof_roc_auc, folds=False)
+    archive_checkpoints(args, oof_roc_auc.item(), folds=False)
 
 
 def cross_validate(args):
@@ -215,10 +215,10 @@ def cross_validate(args):
     print(f'OOF ROC AUC: {oof_roc_auc:.3f}')
 
     # Save OOF probabilities
-    np.save(osp.join(args.checkpoints_dir, 'oof_probabilities.npy'), oof_probabilities)
+    np.save(osp.join(args.checkpoints_dir, 'oof_probabilities.npy'), oof_probabilities.cpu().numpy())
 
     # Save checkpoints
-    archive_checkpoints(args, oof_roc_auc, folds=True)
+    archive_checkpoints(args, oof_roc_auc.item(), folds=True)
 
 
 def main(args):
