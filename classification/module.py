@@ -189,10 +189,10 @@ class XRayClassificationModule(pl.LightningModule):
 
         # ReduceLROnPlateau
         parser.add_argument('--lr_factor', type=float, default=0.1)
-        parser.add_argument('--lr_patience', type=int, default=1)
+        parser.add_argument('--lr_patience', type=int, default=0)
 
         # Early stopping
-        parser.add_argument('--es_patience', type=int, default=3)
+        parser.add_argument('--es_patience', type=int, default=2)
 
         # TTA
         parser.add_argument('--use_tta', action='store_true')
