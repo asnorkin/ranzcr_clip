@@ -66,9 +66,16 @@ class XRayClassificationDataModule(pl.LightningDataModule):
                     random_state=self.hparams.seed)
 
         # Transforms
+        pre_transforms = [
+            A.Resize(height=self.config.input_height, width=self.config.input_width),
+        ]
+
         augmentations = [
-            A.RandomResizedCrop(height=self.config.input_height, width=self.config.input_width, scale=(0.85, 1.0)),
+            A.ShiftScaleRotate(rotate_limit=10),
             A.HorizontalFlip(),
+            A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2),
+            A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1),
+            A.CoarseDropout(),
         ]
 
         post_transforms = [
@@ -78,11 +85,11 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         ]
 
         # Train dataset
-        train_transform = A.Compose(augmentations + post_transforms)
+        train_transform = A.Compose(pre_transforms + augmentations + post_transforms)
         self.train_dataset = XRayDataset(train_items, self.classes, transform=train_transform)
 
         # Val dataset
-        val_transform = A.Compose(post_transforms)
+        val_transform = A.Compose(pre_transforms + post_transforms)
         self.val_dataset = XRayDataset(val_items, self.classes, transform=val_transform)
 
     def setup_fold(self, fold):
