@@ -141,7 +141,7 @@ class XRayClassificationModule(pl.LightningModule):
             scheduler = {
                 'scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(
                     optimizer, factor=self.hparams.lr_factor, patience=self.hparams.lr_patience,
-                    mode=self.hparams.monitor_mode, verbose=True),
+                    mode=self.hparams.monitor_mode, threshold=0.0, verbose=True),
                 'monitor': 'val_monitor',
                 'interval': 'epoch',
                 'frequency': self.hparams.check_val_every_n_epoch,
