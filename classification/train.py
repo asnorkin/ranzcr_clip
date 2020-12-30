@@ -103,6 +103,8 @@ def lr_monitor_callback():
 
 
 def archive_checkpoints(args, oof_roc_auc, folds):
+    print(f'Archive checkpoints..')
+
     # Archive file
     archive_name = f'{args.experiment}_auc{oof_roc_auc:.3f}'
     archive_file = osp.join(args.archives_dir, archive_name + '.zip')
@@ -129,8 +131,10 @@ def archive_checkpoints(args, oof_roc_auc, folds):
     with zipfile.ZipFile(archive_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
         zipf.write(args.config_file, arcname='config.yml')
         for fname in checkpoints_files:
-            arcname = fname.replace('=', '')  # Remove kaggle illegal character =
+            arcname = fname.replace('=', '')  # Remove kaggle illegal character '='
             zipf.write(osp.join(args.checkpoints_dir, fname), arcname=arcname)
+
+    print(f'Checkpoints successfully archived!')
 
 
 def train_model(args, fold=-1, data=None):
