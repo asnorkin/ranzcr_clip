@@ -29,12 +29,14 @@ A.HorizontalFlip()
 - [ ] infinite increase val_roc_auc
 - [x] tensorboard names
 - [ ] test synchronization for multi-gpu
+- [ ] stats by classes
 
 ## Ideas to improve the model:
 - [x] hflip TTA;  :white_check_mark:VAL_AUC: +0.001, :white_check_mark:LB: +0.002
 - [ ] label smoothing
   - [x] :x:VAL_AUC: -0.1 for eps=0.05, may be better for smaller eps and together with harder augmentations
 - [ ] more augmentations
+- [ ] loss weights or sampling
 - [ ] different heads
 - [ ] rank_average
   - [x] :x:VAL_AUC: -0.42, didn't work for two predictions, may be better for ensemble
