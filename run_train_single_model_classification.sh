@@ -5,11 +5,10 @@ BATCH_SIZE=48
 NUM_WORKERS=16
 PRECISION=16
 VAL_SIZE=0.2
-SMOOTHING=0.05
 
 PROJECT=efficientnet_b0
 
-EXPERIMENT=${PROJECT}_single_model_${LR}lr${SMOOTHING}smt${VAL_SIZE}val${EPOCHS}e${BATCH_SIZE}b${PRECISION}p
+EXPERIMENT=${PROJECT}_${LR}lr${VAL_SIZE}val${EPOCHS}e${BATCH_SIZE}b${PRECISION}p
 GPUS=0,1
 
 # Add repo root to PYTHONPATH for imports
@@ -25,7 +24,6 @@ nohup python classification/train.py \
     --gpus=${GPUS} \
     --num_epochs=${EPOCHS} \
     --val_size=${VAL_SIZE} \
-    --smoothing_epsilon=${SMOOTHING} \
     --accelerator=ddp \
     --precision=${PRECISION} \
     --cache_images \
