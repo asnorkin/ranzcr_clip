@@ -13,7 +13,18 @@ drop_connect_rate=0.5
 A.RandomResizedCrop(scale=(0.85, 1.0))  
 A.HorizontalFlip()  
 
-#### Model 1 : efficientnet_b3, VAL_AUC: 0.949, LB: 0.950, EPOCHS: 18
+#### Model 1: efficientnet_b0, VAL_AUC: 0.944, LB: 0.945, EPOCHS: 23
+
+###### Params
+input_shape=(600x600)  
+dropout_rate=0.5  
+drop_connect_rate=0.5  
+
+###### Augmentations
+A.RandomResizedCrop(scale=(0.85, 1.0))  
+A.HorizontalFlip()  
+
+#### Model 2 : efficientnet_b3, VAL_AUC: 0.949, LB: 0.950, EPOCHS: 18
 
 ###### Params
 input_shape=(512x512)  
