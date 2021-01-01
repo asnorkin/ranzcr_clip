@@ -181,7 +181,7 @@ class XRayClassificationModule(pl.LightningModule):
 
         # Optimizer and scheduler
         parser.add_argument('--weight_decay', type=float, default=1e-6)
-        parser.add_argument('--scheduler', type=str, default='reducelronplateau',
+        parser.add_argument('--scheduler', type=str, default='onecyclelr',
                             choices=['reducelronplateau', 'onecyclelr'])
 
         # OneCycleLR
