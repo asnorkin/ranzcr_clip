@@ -128,8 +128,11 @@ class XRayClassificationModule(pl.LightningModule):
 
     def _configure_scheduler(self, optimizer):
         if self.hparams.scheduler == 'onecyclelr':
-            opt_step_period = self.hparams.batch_size * self.trainer.accumulate_grad_batches
-            steps_per_epoch = ceil(len(self.trainer.datamodule.train_dataset) / opt_step_period)
+            dataset_size = len(self.trainer.datamodule.train_dataset)
+            step_period = self.hparams.batch_size \
+                          * self.trainer.accumulate_grad_batches \
+                          * self.trainer.world_size
+            steps_per_epoch = ceil(dataset_size / step_period)
             scheduler = {
                 'scheduler': OneCycleLR(
                     optimizer, max_lr=self.hparams.lr, pct_start=self.hparams.lr_pct_start,
