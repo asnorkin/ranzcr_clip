@@ -52,6 +52,9 @@ def config_args():
     if args.num_epochs is not None:
         args.max_epochs = args.num_epochs
 
+    if args.seed is not None:
+        args.deterministic = True
+
     return args
 
 
