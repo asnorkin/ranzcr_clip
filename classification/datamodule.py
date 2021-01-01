@@ -46,7 +46,12 @@ class XRayClassificationDataModule(pl.LightningDataModule):
             return
 
         # Load and split items
-        self.items, self.classes = XRayDataset.load_items(self.hparams.labels_csv, self.hparams.images_dir)
+        self.items, self.classes = XRayDataset.load_items(
+            self.hparams.labels_csv,
+            self.hparams.images_dir,
+            cache_images=self.hparams.cache_images,
+            cache_size=(self.config.input_width, self.config.input_height))
+
         patient_ids = [item['patient_id'] for item in self.items]
 
         if self.hparams.cv_folds is not None:
