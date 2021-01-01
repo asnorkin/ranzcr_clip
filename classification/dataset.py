@@ -34,6 +34,10 @@ class XRayDataset(Dataset):
 
         return sample
 
+    @property
+    def targets(self):
+        return [item['target'] for item in self.items]
+
     def setup_indices(self, indices=None):
         if indices is None:
             indices = list(range(len(self.items)))
