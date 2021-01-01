@@ -9,8 +9,21 @@ from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
 
 from classification.dataset import InferenceXRayDataset
-from classification.loss import rank_average
 from predictors import FoldPredictor, TorchModelPredictor
+
+
+TARGET_NAMES = [
+    'ETT - Abnormal',
+    'ETT - Borderline',
+    'ETT - Normal',
+    'NGT - Abnormal',
+    'NGT - Borderline',
+    'NGT - Incompletely Imaged',
+    'NGT - Normal',
+    'CVC - Abnormal',
+    'CVC - Borderline',
+    'CVC - Normal',
+    'Swan Ganz Catheter Present']
 
 
 def config_args():
@@ -48,20 +61,7 @@ def create_batch_generator(args, model_config):
 
 
 def save(predictions, image_uids, output_dir):
-    columns = [
-        'ETT - Abnormal',
-        'ETT - Borderline',
-        'ETT - Normal',
-        'NGT - Abnormal',
-        'NGT - Borderline',
-        'NGT - Incompletely Imaged',
-        'NGT - Normal',
-        'CVC - Abnormal',
-        'CVC - Borderline',
-        'CVC - Normal',
-        'Swan Ganz Catheter Present']
-
-    predictions = pd.DataFrame(data=predictions, columns=columns)
+    predictions = pd.DataFrame(data=predictions, columns=TARGET_NAMES)
     predictions['StudyInstanceUID'] = image_uids
 
     predictions.to_csv(osp.join(output_dir, 'submission.csv'), index=False)
