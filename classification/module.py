@@ -186,9 +186,9 @@ class XRayClassificationModule(pl.LightningModule):
 
         # OneCycleLR
         parser.add_argument('--lr', type=float, default=1e-3)
-        parser.add_argument('--lr_pct_start', type=float, default=0.1)
+        parser.add_argument('--lr_pct_start', type=float, default=0.05)
         parser.add_argument('--lr_div_factor', type=float, default=1000.)
-        parser.add_argument('--lr_final_div_factor', type=float, default=500.)
+        parser.add_argument('--lr_final_div_factor', type=float, default=1000.)
 
         # ReduceLROnPlateau
         parser.add_argument('--lr_factor', type=float, default=0.1)
