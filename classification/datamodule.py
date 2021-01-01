@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+from math import floor
 
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
@@ -23,6 +24,9 @@ class XRayClassificationDataModule(pl.LightningDataModule):
 
         self.config = ModelConfig(hparams.config_file)
         self.hparams = hparams
+
+        # Batch size that can be changed
+        self.batch_size = self.hparams.batch_size
 
         # Common placeholders
         self.items = None
@@ -96,6 +100,23 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         self.train_dataset.setup_indices(self.train_indices[fold])
         self.val_dataset.setup_indices(self.val_indices[fold])
 
+    def setup_input_size(self, input_size):
+        current_input_size = self.train_dataset.transforms[0].height
+        current_batch_size = self.batch_size
+        new_batch_size = floor((input_size / current_input_size) ** 2 * current_batch_size)
+        if new_batch_size < 1:
+            print(f'Can\'t set new input size {input_size} because new batch size will be bad: {new_batch_size}')
+            return
+
+        self.batch_size = new_batch_size
+
+        self.train_dataset.transforms[0].height = input_size
+        self.train_dataset.transforms[0].width = input_size
+        self.val_dataset.transforms[0].height = input_size
+        self.val_dataset.transforms[0].width = input_size
+
+        print(f'Successfully set up nwe input size {input_size} with new batch size {new_batch_size}')
+
     def train_dataloader(self):
         return self._dataloader(self.train_dataset, shuffle=True)
 
@@ -106,7 +127,7 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         params = {
             'drop_last': False,
             'pin_memory': True,
-            'batch_size': self.hparams.batch_size,
+            'batch_size': self.batch_size,
             'num_workers': self.hparams.num_workers,
         }
 
