@@ -45,6 +45,7 @@ A.HorizontalFlip()
 
 ## Ideas to improve the model:
 - [x] hflip TTA;  :white_check_mark:VAL_AUC: +0.001, :white_check_mark:LB: +0.002
+- [ ] progressive input size
 - [ ] label smoothing
   - [x] :x:VAL_AUC: -0.1 for eps=0.05, may be better for smaller eps and together with harder augmentations
 - [ ] more augmentations
