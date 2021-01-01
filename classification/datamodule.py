@@ -78,7 +78,7 @@ class XRayClassificationDataModule(pl.LightningDataModule):
             pre_transforms.append(A.Resize(height=self.config.input_height, width=self.config.input_width))
 
         augmentations = [
-            A.ShiftScaleRotate(rotate_limit=3, shift_limit=0.0),
+            A.RandomResizedCrop(height=self.config.input_height, width=self.config.input_width, scale=(0.85, 1.0)),
             A.HorizontalFlip(),
             # A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit=0.2, val_shift_limit=0.2),
             # A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1),
