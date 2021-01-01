@@ -71,6 +71,7 @@ def efficientnet_b7(num_classes, pretrained=True):
 
 def _efficientnet(num_classes, pretrained=True, **params):
     params['num_classes'] = num_classes
+    params['in_channels'] = 1
 
     if pretrained:
         model = EfficientNet.from_pretrained(**params)
