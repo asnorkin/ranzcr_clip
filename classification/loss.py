@@ -20,23 +20,30 @@ def to_numpy(arr):
     return arr
 
 
-def batch_auc_roc(targets, probabilities):
-    result = []
+def reduce_auc_roc(auc_roc_values, reduction='mean'):
+    if reduction is None:
+        return auc_roc_values
+
+    result = auc_roc_values[auc_roc_values != -1]
+    if len(result) == 0:
+        print(f'No targets has valid ROC AUC, result is zero.')
+        return torch.tensor(0.).to(auc_roc_values)
+
+    return reduce_loss(result, reduction=reduction)
+
+
+def batch_auc_roc(targets, probabilities, reduction='mean'):
+    N_TARGETS = 11
+
+    result = torch.ones(N_TARGETS).to(targets) * -1
     for i in range(11):
         targets_i, probabilities_i = targets[:, i], probabilities[:, i]
         if torch.unique(targets_i).numel() == 1:
             print(f'Target {i} has only one class. Skip it in ROC AUC.')
-            continue
+        else:
+            result[i] = auroc(probabilities_i, targets_i)
 
-        result.append(auroc(probabilities_i, targets_i))
-
-    if len(result) == 0:
-        print(f'No targets has valid ROC AUC, result is zero.')
-        result = torch.tensor(0.).to(targets)
-    else:
-        result = torch.stack(result).mean()
-
-    return result
+    return reduce_auc_roc(result, reduction=reduction)
 
 
 def rank_average(*tensors):

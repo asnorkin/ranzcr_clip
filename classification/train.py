@@ -7,12 +7,15 @@ from argparse import ArgumentParser
 import numpy as np
 import pytorch_lightning as pl
 import torch
+from prettytable import PrettyTable
 from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
+from sklearn.metrics import classification_report, confusion_matrix
 
 from classification.datamodule import XRayClassificationDataModule
-from classification.loss import batch_auc_roc
+from classification.loss import batch_auc_roc, reduce_auc_roc
 from classification.module import XRayClassificationModule
+from submit import TARGET_NAMES
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -187,13 +190,42 @@ def train_model(args, fold=-1, data=None):
         return model.test_labels, model.test_probabilities
 
 
+def print_stats(probabilities, labels):
+    # OOF ROC AUC
+    oof_roc_auc_values = batch_auc_roc(targets=labels, probabilities=probabilities, reduction=None)
+    oof_roc_auc = reduce_auc_roc(oof_roc_auc_values, reduction='mean')
+    print(f'OOF ROC AUC: {oof_roc_auc:.3f}')
+
+    # Classification report
+    predictions = torch.where(probabilities > 0.5, 1, 0)
+    report = classification_report(predictions, labels, target_names=TARGET_NAMES, output_dict=True)
+    for i, target in enumerate(TARGET_NAMES):
+        report[target]['roc_auc'] = oof_roc_auc_values[i].item()
+
+    report_table = PrettyTable()
+    report_table.field_names = ['Class', 'Precision', 'Recall', 'F1-score', 'ROC AUC', 'Objects']
+    report_table.float_format = '.3'
+
+    for i, target in enumerate(TARGET_NAMES):
+        report_table.add_row([
+            target,
+            report[target]['precision'],
+            report[target]['recall'],
+            report[target]['f1-score'],
+            report[target]['roc_auc'],
+            report[target]['support']])
+
+    print(report_table)
+
+    return oof_roc_auc
+
+
 def train_single_model(args):
     # Train model
     val_labels, val_probabilities = train_model(args)
 
     # Verbose
-    oof_roc_auc = batch_auc_roc(targets=val_labels, probabilities=val_probabilities)
-    print(f'OOF ROC AUC: {oof_roc_auc:.3f}')
+    oof_roc_auc = print_stats(probabilities=val_probabilities, labels=val_labels)
 
     # Save val probabilities
     np.save(osp.join(args.checkpoints_dir, 'val_probabilities.npy'), val_probabilities.cpu().numpy())
