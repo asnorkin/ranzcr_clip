@@ -56,7 +56,7 @@ class XRayDataset(Dataset):
         return self.indices[index]
 
     @classmethod
-    def load_items(cls, labels_csv, images_dir, cache_images=False):
+    def load_items(cls, labels_csv, images_dir, cache_images=False, cache_size=None):
         items = []
 
         labels_df = pd.read_csv(labels_csv)
@@ -68,9 +68,17 @@ class XRayDataset(Dataset):
                 if not osp.exists(image_file):
                     continue
 
+                image = None
+                if cache_images:
+                    image = cls.load_image(image_file)
+                    if cache_size is not None:
+                        if isinstance(cache_size, int):
+                            cache_size = (cache_size, cache_size)
+                        image = cv.resize(image, cache_size)
+
                 items.append({
                     'image_file': image_file,
-                    'image': cls.load_image(image_file) if cache_images else None,
+                    'image': image,
                     'target': row[classes].values.astype(np.float),
                     'patient_id': row['PatientID'],
                 })
