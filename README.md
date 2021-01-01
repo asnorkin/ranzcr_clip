@@ -37,6 +37,7 @@ A.HorizontalFlip()
 
 ## Bugs and features
 - [x] validation and test TTA
+- [ ] NVIDIA DALI for dataloading
 - [ ] infinite increase val_roc_auc
 - [x] tensorboard names
 - [ ] test synchronization for multi-gpu
