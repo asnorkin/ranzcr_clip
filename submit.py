@@ -36,7 +36,7 @@ def create_batch_generator(args, model_config):
         ToTensorV2(),
     ])
 
-    dataset = InferenceXRayDataset.create(args.images_dir, cache_images=False, transform=transform)
+    dataset = InferenceXRayDataset.create(args.images_dir, transform=transform)
 
     return DataLoader(
         dataset,

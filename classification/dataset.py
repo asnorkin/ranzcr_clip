@@ -14,11 +14,16 @@ def read_dirs(dirpath):
 
 
 class XRayDataset(Dataset):
-    def __init__(self, items, classes, transform=None, indices=None):
+    def __init__(self, items, classes, transform=None, indices=None, cache_images=False, cache_size=None):
         self.items = items
         self.classes = classes
         self.transform = transform
         self.indices = indices or list(range(len(items)))
+
+        self.cache_images = cache_images
+        self.cache_size = cache_size
+        if self.cache_size is not None and isinstance(self.cache_size, int):
+            self.cache_size = (self.cache_size, self.cache_size)
 
     def __len__(self):
         return len(self.indices)
@@ -44,7 +49,8 @@ class XRayDataset(Dataset):
         self.indices = indices
 
     def _load_sample(self, index):
-        item = self.items[self._index(index)]
+        index = self._index(index)
+        item = self.items[index]
 
         sample = {
             'image': item['image'],
@@ -52,7 +58,14 @@ class XRayDataset(Dataset):
         }
 
         if sample['image'] is None:
-            sample['image'] = self.load_image(item['image_file'])
+            image = self.load_image(item['image_file'])
+
+            if self.cache_images:
+                if self.cache_size is not None:
+                    image = cv.resize(image, self.cache_size)
+                self.items[index]['image'] = image
+
+            sample['image'] = image
 
         return sample
 
@@ -60,7 +73,7 @@ class XRayDataset(Dataset):
         return self.indices[index]
 
     @classmethod
-    def load_items(cls, labels_csv, images_dir, cache_images=False, cache_size=None):
+    def load_items(cls, labels_csv, images_dir):
         items = []
 
         labels_df = pd.read_csv(labels_csv)
@@ -69,31 +82,22 @@ class XRayDataset(Dataset):
         with tqdm(desc='Loading dataset', unit='image', total=len(labels_df)) as progress_bar:
             for i, row in labels_df.iterrows():
                 image_file = osp.join(images_dir, f'{row.StudyInstanceUID}.jpg')
-                if not osp.exists(image_file):
-                    continue
+                if osp.exists(image_file):
+                    items.append({
+                        'image_file': image_file,
+                        'image': None,
+                        'target': row[classes].values.astype(np.float),
+                        'patient_id': row['PatientID'],
+                    })
 
-                image = None
-                if cache_images:
-                    image = cls.load_image(image_file)
-                    if cache_size is not None:
-                        if isinstance(cache_size, int):
-                            cache_size = (cache_size, cache_size)
-                        image = cv.resize(image, cache_size)
-
-                items.append({
-                    'image_file': image_file,
-                    'image': image,
-                    'target': row[classes].values.astype(np.float),
-                    'patient_id': row['PatientID'],
-                })
                 progress_bar.update()
 
         return items, classes
 
     @classmethod
-    def create(cls, labels_csv, images_dir, cache_images=False, transform=None):
-        items, classes = cls.load_items(labels_csv, images_dir, cache_images=cache_images)
-        return cls(items, classes, transform=transform)
+    def create(cls, labels_csv, images_dir, transform=None, cache_images=False, cache_size=None):
+        items, classes = cls.load_items(labels_csv, images_dir)
+        return cls(items, classes, transform=transform, cache_images=cache_images, cache_size=cache_size)
 
     @classmethod
     def load_image(cls, image_file):
@@ -118,13 +122,13 @@ class InferenceXRayDataset(XRayDataset):
         return sample
 
     @classmethod
-    def load_items(cls, images_dir, cache_images=False):
+    def load_items(cls, images_dir):
         image_files = [osp.join(images_dir, fname) for fname in os.listdir(images_dir)]
 
         items = []
         for image_file in tqdm(image_files, desc='Loading dataset', unit='image'):
             items.append({
-                'image': cls.load_image(image_file) if cache_images else None,
+                'image': None,
                 'image_file': image_file,
                 'instance_uid': osp.splitext(osp.basename(image_file))[0],
             })
@@ -132,8 +136,8 @@ class InferenceXRayDataset(XRayDataset):
         return items
 
     @classmethod
-    def create(cls, images_dir, cache_images=False, transform=None):
-        items = cls.load_items(images_dir, cache_images=cache_images)
+    def create(cls, images_dir, transform=None):
+        items = cls.load_items(images_dir)
         return cls(items, classes=None, transform=transform)
 
 

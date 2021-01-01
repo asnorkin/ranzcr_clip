@@ -48,9 +48,7 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         # Load and split items
         self.items, self.classes = XRayDataset.load_items(
             self.hparams.labels_csv,
-            self.hparams.images_dir,
-            cache_images=self.hparams.cache_images,
-            cache_size=(self.config.input_width, self.config.input_height))
+            self.hparams.images_dir)
 
         patient_ids = [item['patient_id'] for item in self.items]
 
@@ -75,9 +73,9 @@ class XRayClassificationDataModule(pl.LightningDataModule):
                     random_state=self.hparams.seed)
 
         # Transforms
-        pre_transforms = [
-            A.Resize(height=self.config.input_height, width=self.config.input_width),
-        ]
+        pre_transforms = []
+        if not self.hparams.cache_images:
+            pre_transforms.append(A.Resize(height=self.config.input_height, width=self.config.input_width))
 
         augmentations = [
             A.ShiftScaleRotate(rotate_limit=3, shift_limit=0.0),
@@ -88,18 +86,27 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         ]
 
         post_transforms = [
-            A.Resize(height=self.config.input_height, width=self.config.input_width),
             A.Normalize(max_pixel_value=1.0),
             ToTensorV2(),
         ]
 
         # Train dataset
         train_transform = A.Compose(pre_transforms + augmentations + post_transforms)
-        self.train_dataset = XRayDataset(train_items, self.classes, transform=train_transform)
+        self.train_dataset = XRayDataset(
+            items=train_items,
+            classes=self.classes,
+            transform=train_transform,
+            cache_images=self.hparams.cache_images,
+            cache_size=(self.config.input_width, self.config.input_height))
 
         # Val dataset
         val_transform = A.Compose(pre_transforms + post_transforms)
-        self.val_dataset = XRayDataset(val_items, self.classes, transform=val_transform)
+        self.val_dataset = XRayDataset(
+            items=val_items,
+            classes=self.classes,
+            transform=val_transform,
+            cache_images=self.hparams.cache_images,
+            cache_size=(self.config.input_width, self.config.input_height))
 
     def setup_fold(self, fold):
         self.train_dataset.setup_indices(self.train_indices[fold])
