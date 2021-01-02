@@ -13,6 +13,10 @@ def read_dirs(dirpath):
     return [osp.join(dirpath, dirname) for dirname in os.listdir(dirpath) if osp.isdir(dirname)]
 
 
+def load_items(labels_df):
+    pass
+
+
 class XRayDataset(Dataset):
     def __init__(self, items, classes, transform=None, indices=None, cache_images=False, cache_size=None):
         self.items = items
@@ -118,6 +122,8 @@ class InferenceXRayDataset(XRayDataset):
 
         if sample['image'] is None:
             sample['image'] = self.load_image(item['image_file'])
+
+        print(sample['image'].shape)
 
         return sample
 
