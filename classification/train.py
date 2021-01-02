@@ -273,7 +273,7 @@ def cross_validate(args):
     data.setup()
 
     # OOF probabilities placeholder
-    oof_probabilities = torch.zeros((len(data.items), 11))
+    oof_probabilities = torch.zeros((len(data.items), 11), device='cpu', dtype=torch.float32)
 
     # Folds loop
     for fold in range(args.cv_folds):
@@ -282,10 +282,7 @@ def cross_validate(args):
         if fold_oof_indices is None:  # global_rank != 0
             continue
 
-        if fold == 0:
-            oof_probabilities = oof_probabilities.to(fold_oof_probabilities)
-
-        oof_probabilities[fold_oof_indices] = fold_oof_probabilities
+        oof_probabilities[fold_oof_indices] = fold_oof_probabilities.cpu().to(torch.float32)
 
     # Verbose
     oof_labels = torch.as_tensor([item['target'] for item in data.items])
