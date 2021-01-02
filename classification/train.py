@@ -280,7 +280,7 @@ def cross_validate(args):
         print(f'FOLD {fold}')
         fold_oof_indices, fold_oof_probabilities = train_model(args, fold=fold, data=data)
         if fold_oof_indices is None:  # global_rank != 0
-            return
+            continue
 
         if fold == 0:
             oof_probabilities = oof_probabilities.to(fold_oof_probabilities)
