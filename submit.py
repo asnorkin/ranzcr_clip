@@ -45,7 +45,7 @@ def config_args():
 def create_batch_generator(args, model_config):
     transform = A.Compose([
         A.Resize(height=model_config.input_height, width=model_config.input_width),
-        A.Normalize(max_pixel_value=1.0),
+        A.Normalize(mean=0.449, std=0.226, max_pixel_value=1.0),
         ToTensorV2(),
     ])
 
