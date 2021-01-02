@@ -4,7 +4,6 @@ from math import ceil
 import pytorch_lightning as pl
 
 import torch
-import torch.distributed as dist
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import OneCycleLR
 
@@ -84,18 +83,9 @@ class XRayClassificationModule(pl.LightningModule):
         self.test_probabilities = []
         self.test_labels = []
 
-    def _epoch_end(self, _outputs, stage='val'):
-        self.test_probabilities = torch.cat(self.test_probabilities)
-        self.test_labels = torch.cat(self.test_labels)
-
-        # In case of multi GPU gather all predictions on
-        # global_rank == 0 machine and calculate metrics
-        if self.trainer.world_size > 1:
-            if self.trainer.global_rank == 0:
-                self.test_labels = self.all_gather(self.test_labels)
-                self.test_probabilities = self.all_gather(self.test_probabilities)
-            else:
-                return
+    def _epoch_end(self, outputs, stage='val'):
+        self.test_probabilities = torch.cat([output['probabilities'] for output in outputs])
+        self.test_labels = torch.cat([output['labels'] for output in outputs])
 
         roc_auc = batch_auc_roc(self.test_labels, self.test_probabilities)
 
@@ -113,15 +103,18 @@ class XRayClassificationModule(pl.LightningModule):
         if stage in {'train', 'val'}:
             self._log(losses, metrics, stage)
 
+        if stage == 'train':
+            return losses['total']
+
         if stage in {'val', 'test'}:
             if self.hparams.use_tta:
                 logits = self._tta(batch, logits)
 
             probabilities = logits.sigmoid()
-            self.test_probabilities.append(probabilities)
-            self.test_labels.append(batch['target'])
-
-        return losses['total']
+            return {
+                'probabilities': probabilities,
+                'labels': batch['target'],
+            }
 
     def _tta(self, batch, logits):
         logits_hflip = self.forward(torch.flip(batch['image'], dims=(-1,)))
