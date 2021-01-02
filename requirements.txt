@@ -5,6 +5,7 @@ certifi==2020.12.5
 chardet==3.0.4
 cycler==0.10.0
 decorator==4.4.2
+efficientnet-pytorch==0.7.0
 fsspec==0.8.5
 future==0.18.2
 google-auth==1.24.0
@@ -24,12 +25,13 @@ opencv-python==4.4.0.46
 opencv-python-headless==4.4.0.46
 pandas==1.1.5
 Pillow==8.0.1
+prettytable==2.0.0
 protobuf==3.14.0
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pyparsing==2.4.7
 python-dateutil==2.8.1
-pytorch-lightning==1.1.1
+pytorch-lightning==1.1.2
 pytz==2020.4
 PyWavelets==1.1.1
 PyYAML==5.3.1
@@ -50,4 +52,5 @@ torchvision==0.8.2
 tqdm==4.54.1
 typing-extensions==3.7.4.3
 urllib3==1.26.2
+wcwidth==0.2.5
 Werkzeug==1.0.1
