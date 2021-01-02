@@ -197,7 +197,7 @@ def train_model(args, fold=-1, data=None):
 def report(probabilities, labels):
     # OOF ROC AUC
     oof_roc_auc_values = batch_auc_roc(targets=labels, probabilities=probabilities, reduction=None)
-    oof_roc_auc = reduce_auc_roc(oof_roc_auc_values, reduction='mean')
+    oof_roc_auc = reduce_auc_roc(oof_roc_auc_values, reduction='mean').item()
     print(f'OOF ROC AUC: {oof_roc_auc:.3f}')
 
     # Classification report
@@ -223,6 +223,19 @@ def report(probabilities, labels):
             _report[target]['roc_auc'],
             _report[target]['support'],
             num_targets[i].item()])
+
+    def _macro(key):
+        return np.mean([_report[target][key] for target in TARGET_NAMES])
+
+    report_table.add_row([
+        'Macro total',
+        _macro('precision'),
+        _macro('recall'),
+        _macro('f1-score'),
+        oof_roc_auc,
+        len(predictions),
+        len(labels),
+    ])
 
     print(report_table)
 
