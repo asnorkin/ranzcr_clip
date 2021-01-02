@@ -185,8 +185,8 @@ def train_model(args, fold=-1, data=None):
     # Calculate OOF predictions
     trainer.test(model, test_dataloaders=data.val_dataloader())
 
-    # if trainer.global_rank != 0:
-    #     return None, None
+    if trainer.global_rank != 0:
+        return None, None
 
     if fold >= 0:
         return data.val_indices[fold], model.test_probabilities
@@ -245,8 +245,8 @@ def report(probabilities, labels):
 def train_single_model(args):
     # Train model
     val_labels, val_probabilities = train_model(args)
-    # if val_labels is None:  # global_rank != 0
-    #     return
+    if val_labels is None:  # global_rank != 0
+        return
 
     # Verbose
     oof_roc_auc = report(probabilities=val_probabilities, labels=val_labels)
