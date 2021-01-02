@@ -82,7 +82,8 @@ class XRayClassificationModule(pl.LightningModule):
 
     def setup(self, stage: str):
         # Calculate loss weights
-        self.criterion.weights = self.criterion.calculate_weights(self.trainer.datamodule.train_dataset.targets)
+        weights = self.criterion.calculate_weights(self.trainer.datamodule.train_dataset.targets)
+        self.criterion.weights = weights.to(self.device).to(self.dtype)
 
     def _on_epoch_start(self):
         self.test_probabilities = []
