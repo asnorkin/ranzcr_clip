@@ -184,6 +184,10 @@ def train_model(args, fold=-1, data=None):
 
     # Calculate OOF predictions
     trainer.test(model, test_dataloaders=data.val_dataloader())
+
+    if trainer.global_rank != 0:
+        return None, None
+
     if fold >= 0:
         return data.val_indices[fold], model.test_probabilities
     else:
@@ -224,6 +228,8 @@ def report(probabilities, labels):
 def train_single_model(args):
     # Train model
     val_labels, val_probabilities = train_model(args)
+    if val_labels is None:  # global_rank != 0
+        return
 
     # Verbose
     oof_roc_auc = report(probabilities=val_probabilities, labels=val_labels)
@@ -247,6 +253,9 @@ def cross_validate(args):
     for fold in range(args.cv_folds):
         print(f'FOLD {fold}')
         fold_oof_indices, fold_oof_probabilities = train_model(args, fold=fold, data=data)
+        if fold_oof_indices is None:  # global_rank != 0
+            return
+
         oof_probabilities[fold_oof_indices] = fold_oof_probabilities
 
     # Verbose

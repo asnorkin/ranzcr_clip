@@ -4,6 +4,7 @@ from math import ceil
 import pytorch_lightning as pl
 
 import torch
+import torch.distributed as dist
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import OneCycleLR
 
@@ -87,14 +88,28 @@ class XRayClassificationModule(pl.LightningModule):
         self.test_probabilities = torch.cat(self.test_probabilities)
         self.test_labels = torch.cat(self.test_labels)
 
+        # In case of multi GPU gather all predictions on
+        # global_rank == 0 machine and calculate metrics
+        if self.trainer.world_size > 1:
+            if self.trainer.global_rank == 0:
+                test_labels = [torch.zeros_like(self.test_labels) for _ in range(self.trainer.world_size)]
+                dist.all_gather(test_labels, self.test_labels)
+                self.test_labels = test_labels
+
+                test_probabilities = [torch.zeros_like(self.test_probabilities) for _ in range(self.trainer.world_size)]
+                dist.all_gather(test_probabilities, self.test_probabilities)
+                self.test_probabilities = test_probabilities
+            else:
+                return
+
         roc_auc = batch_auc_roc(self.test_labels, self.test_probabilities)
 
         if stage == 'val':
-            self.log(f'{stage}_roc_auc', roc_auc, logger=False, prog_bar=True, sync_dist=True)
-            self.log(f'metrics/{stage}_roc_auc', roc_auc, logger=True, prog_bar=False, sync_dist=True)
+            self.log(f'{stage}_roc_auc', roc_auc, logger=False, prog_bar=True)
+            self.log(f'metrics/{stage}_roc_auc', roc_auc, logger=True, prog_bar=False)
 
         if stage == 'val':
-            self.log('val_monitor', -roc_auc, sync_dist=True)
+            self.log('val_monitor', -roc_auc)
 
     def _step(self, batch, _batch_idx, stage):
         logits = self.forward(batch['image'])
