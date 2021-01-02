@@ -92,13 +92,8 @@ class XRayClassificationModule(pl.LightningModule):
         # global_rank == 0 machine and calculate metrics
         if self.trainer.world_size > 1:
             if self.trainer.global_rank == 0:
-                test_labels = [torch.zeros_like(self.test_labels) for _ in range(self.trainer.world_size)]
-                dist.all_gather(test_labels, self.test_labels)
-                self.test_labels = torch.cat(test_labels)
-
-                test_probabilities = [torch.zeros_like(self.test_probabilities) for _ in range(self.trainer.world_size)]
-                dist.all_gather(test_probabilities, self.test_probabilities)
-                self.test_probabilities = torch.cat(test_probabilities)
+                self.test_labels = self.all_gather(self.test_labels)
+                self.test_probabilities = self.all_gather(self.test_probabilities)
             else:
                 return
 
