@@ -5,6 +5,7 @@ import zipfile
 from argparse import ArgumentParser
 
 import numpy as np
+import pandas as pd
 import pytorch_lightning as pl
 import torch
 from prettytable import PrettyTable
@@ -194,28 +195,27 @@ def train_model(args, fold=-1, data=None):
         return model.test_labels, model.test_probabilities
 
 
-def report(probabilities, labels):
+def report(probabilities, labels, checkpoints_dir=None):
     # OOF ROC AUC
     oof_roc_auc_values = batch_auc_roc(targets=labels, probabilities=probabilities, reduction=None)
     oof_roc_auc = reduce_auc_roc(oof_roc_auc_values, reduction='mean').item()
     print(f'OOF ROC AUC: {oof_roc_auc:.3f}')
 
-    # Classification report
+    num_targets = labels.sum(dim=0).long()
+
+    # Create sklearn classification report
     predictions = torch.where(probabilities > 0.5, 1, 0)
     _report = classification_report(predictions.cpu().numpy(), labels.cpu().numpy(),
                                     target_names=TARGET_NAMES, output_dict=True)
+
+    # Add ROC AUC to the report
     for i, target in enumerate(TARGET_NAMES):
         _report[target]['roc_auc'] = oof_roc_auc_values[i].item()
 
-    report_table = PrettyTable()
-    report_table.field_names = \
-        ['Class', 'Precision', 'Recall', 'F1-score', 'ROC AUC', 'Predicted objects', 'GT objects']
-    report_table.float_format = '.3'
-
-    num_targets = labels.sum(dim=0).long()
-
+    # Covert report to the matrix
+    rows = []
     for i, target in enumerate(TARGET_NAMES):
-        report_table.add_row([
+        rows.append([
             target,
             _report[target]['precision'],
             _report[target]['recall'],
@@ -224,20 +224,29 @@ def report(probabilities, labels):
             _report[target]['support'],
             num_targets[i].item()])
 
+    # Add macro average
     def _macro(key):
         return np.mean([_report[target][key] for target in TARGET_NAMES])
 
-    report_table.add_row([
+    rows.append([
         'Macro total',
         _macro('precision'),
         _macro('recall'),
         _macro('f1-score'),
         oof_roc_auc,
         len(predictions),
-        len(labels),
-    ])
+        len(labels)])
 
+    # Generate table
+    columns = ['Class', 'Precision', 'Recall', 'F1-score', 'ROC AUC', 'Predicted objects', 'GT objects']
+
+    report_table = PrettyTable(field_names=columns, float_format='.3')
+    report_table.add_rows(rows)
     print(report_table)
+
+    # Save report to csv
+    if checkpoints_dir is not None:
+        pd.DataFrame(data=rows, columns=columns).to_csv(osp.join(checkpoints_dir, 'report.csv'), index=False)
 
     return oof_roc_auc
 
@@ -249,7 +258,7 @@ def train_single_model(args):
         return
 
     # Verbose
-    oof_roc_auc = report(probabilities=val_probabilities, labels=val_labels)
+    oof_roc_auc = report(probabilities=val_probabilities, labels=val_labels, checkpoints_dir=args.checkpoints_dir)
 
     # Save val probabilities
     np.save(osp.join(args.checkpoints_dir, 'val_probabilities.npy'), val_probabilities.cpu().numpy())
@@ -276,9 +285,8 @@ def cross_validate(args):
         oof_probabilities[fold_oof_indices] = fold_oof_probabilities
 
     # Verbose
-    oof_targets = torch.as_tensor([item['target'] for item in data.items])
-    oof_roc_auc = batch_auc_roc(targets=oof_targets, probabilities=oof_probabilities).item()
-    print(f'OOF ROC AUC: {oof_roc_auc:.3f}')
+    oof_labels = torch.as_tensor([item['target'] for item in data.items])
+    oof_roc_auc = report(probabilities=oof_probabilities, labels=oof_labels, checkpoints_dir=args.checkpoints_dir)
 
     # Save OOF probabilities
     np.save(osp.join(args.checkpoints_dir, 'oof_probabilities.npy'), oof_probabilities.cpu().numpy())
