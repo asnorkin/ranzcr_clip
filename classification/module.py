@@ -4,6 +4,7 @@ from math import ceil
 import pytorch_lightning as pl
 
 import torch
+from torch import distributed as dist
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import OneCycleLR
 
@@ -84,17 +85,31 @@ class XRayClassificationModule(pl.LightningModule):
         self.test_labels = []
 
     def _epoch_end(self, outputs, stage='val'):
-        self.test_probabilities = torch.cat([output['probabilities'] for output in outputs])
-        self.test_labels = torch.cat([output['labels'] for output in outputs])
+        def _gather(key):
+            node_values = torch.cat([output[key] for output in outputs])
+            if self.trainer.world_size == 1:
+                return node_values
 
-        roc_auc = batch_auc_roc(self.test_labels, self.test_probabilities)
+            all_values = [torch.zeros_like(node_values) for _ in range(self.trainer.world_size)]
+            dist.barrier()
+            dist.all_gather(all_values, node_values)
+            return all_values
+
+        probabilities = _gather('probabilities')
+        labels = _gather('labels')
+
+        roc_auc = batch_auc_roc(labels, probabilities)
 
         if stage == 'val':
-            self.log(f'{stage}_roc_auc', roc_auc, logger=False, prog_bar=True)
-            self.log(f'metrics/{stage}_roc_auc', roc_auc, logger=True, prog_bar=False)
+            self.log(f'{stage}_roc_auc', roc_auc, logger=False, prog_bar=True, sync_dist=True)
+            self.log(f'metrics/{stage}_roc_auc', roc_auc, logger=True, prog_bar=False, sync_dist=True)
 
         if stage == 'val':
-            self.log('val_monitor', -roc_auc)
+            self.log('val_monitor', -roc_auc, sync_dist=True)
+
+        if self.trainer.global_rank == 0:
+            self.test_labels = labels
+            self.test_probabilities = probabilities
 
     def _step(self, batch, _batch_idx, stage):
         logits = self.forward(batch['image'])
