@@ -190,7 +190,7 @@ def train_model(args, fold=-1, data=None):
         return model.test_labels, model.test_probabilities
 
 
-def print_stats(probabilities, labels):
+def report(probabilities, labels):
     # OOF ROC AUC
     oof_roc_auc_values = batch_auc_roc(targets=labels, probabilities=probabilities, reduction=None)
     oof_roc_auc = reduce_auc_roc(oof_roc_auc_values, reduction='mean')
@@ -198,7 +198,7 @@ def print_stats(probabilities, labels):
 
     # Classification report
     predictions = torch.where(probabilities > 0.5, 1, 0)
-    report = classification_report(predictions, labels, target_names=TARGET_NAMES, output_dict=True)
+    report = classification_report(predictions.cpu().numpy(), labels.cpu().numpy(), target_names=TARGET_NAMES, output_dict=True)
     for i, target in enumerate(TARGET_NAMES):
         report[target]['roc_auc'] = oof_roc_auc_values[i].item()
 
