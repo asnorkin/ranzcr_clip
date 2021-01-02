@@ -107,9 +107,8 @@ class XRayClassificationModule(pl.LightningModule):
         if stage == 'val':
             self.log('val_monitor', -roc_auc, sync_dist=True)
 
-        if self.trainer.global_rank == 0:
-            self.test_labels = labels
-            self.test_probabilities = probabilities
+        self.test_labels = labels
+        self.test_probabilities = probabilities
 
     def _step(self, batch, _batch_idx, stage):
         logits = self.forward(batch['image'])
