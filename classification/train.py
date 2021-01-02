@@ -208,8 +208,11 @@ def report(probabilities, labels):
         _report[target]['roc_auc'] = oof_roc_auc_values[i].item()
 
     report_table = PrettyTable()
-    report_table.field_names = ['Class', 'Precision', 'Recall', 'F1-score', 'ROC AUC', 'Objects']
+    report_table.field_names = \
+        ['Class', 'Precision', 'Recall', 'F1-score', 'ROC AUC', 'Predicted objects', 'GT objects']
     report_table.float_format = '.3'
+
+    num_targets = labels.sum(dim=1)
 
     for i, target in enumerate(TARGET_NAMES):
         report_table.add_row([
@@ -218,7 +221,8 @@ def report(probabilities, labels):
             _report[target]['recall'],
             _report[target]['f1-score'],
             _report[target]['roc_auc'],
-            _report[target]['support']])
+            _report[target]['support'],
+            num_targets[i].item()])
 
     print(report_table)
 
