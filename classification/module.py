@@ -93,6 +93,7 @@ class XRayClassificationModule(pl.LightningModule):
             all_values = [torch.zeros_like(node_values) for _ in range(self.trainer.world_size)]
             dist.barrier()
             dist.all_gather(all_values, node_values)
+            all_values = torch.cat(all_values)
             return all_values
 
         probabilities = _gather('probabilities')
