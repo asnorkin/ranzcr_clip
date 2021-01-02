@@ -101,11 +101,12 @@ class BCEWithLogitsLoss(nn.Module):
         return bce
 
     @staticmethod
-    def calculate_weights(targets):
+    def calculate_weights(targets, lo=0.5, hi=2.0):
         targets = torch.from_numpy(np.stack(targets))
         positive_frac = targets.sum(dim=0) / targets.shape[0]
         negative_frac = 1. - positive_frac
         weights = negative_frac / positive_frac
         weights[torch.isinf(weights) | torch.isnan(weights)] = 1.
         weights = torch.sqrt(weights)
+        weights = torch.clamp(weights, min=lo, max=hi)
         return weights
