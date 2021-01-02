@@ -10,7 +10,7 @@ import torch
 from prettytable import PrettyTable
 from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report
 
 from classification.datamodule import XRayClassificationDataModule
 from classification.loss import batch_auc_roc, reduce_auc_roc
@@ -198,9 +198,10 @@ def report(probabilities, labels):
 
     # Classification report
     predictions = torch.where(probabilities > 0.5, 1, 0)
-    report = classification_report(predictions.cpu().numpy(), labels.cpu().numpy(), target_names=TARGET_NAMES, output_dict=True)
+    _report = classification_report(predictions.cpu().numpy(), labels.cpu().numpy(),
+                                    target_names=TARGET_NAMES, output_dict=True)
     for i, target in enumerate(TARGET_NAMES):
-        report[target]['roc_auc'] = oof_roc_auc_values[i].item()
+        _report[target]['roc_auc'] = oof_roc_auc_values[i].item()
 
     report_table = PrettyTable()
     report_table.field_names = ['Class', 'Precision', 'Recall', 'F1-score', 'ROC AUC', 'Objects']
@@ -209,11 +210,11 @@ def report(probabilities, labels):
     for i, target in enumerate(TARGET_NAMES):
         report_table.add_row([
             target,
-            report[target]['precision'],
-            report[target]['recall'],
-            report[target]['f1-score'],
-            report[target]['roc_auc'],
-            report[target]['support']])
+            _report[target]['precision'],
+            _report[target]['recall'],
+            _report[target]['f1-score'],
+            _report[target]['roc_auc'],
+            _report[target]['support']])
 
     print(report_table)
 
@@ -225,7 +226,7 @@ def train_single_model(args):
     val_labels, val_probabilities = train_model(args)
 
     # Verbose
-    oof_roc_auc = print_stats(probabilities=val_probabilities, labels=val_labels)
+    oof_roc_auc = report(probabilities=val_probabilities, labels=val_labels)
 
     # Save val probabilities
     np.save(osp.join(args.checkpoints_dir, 'val_probabilities.npy'), val_probabilities.cpu().numpy())
