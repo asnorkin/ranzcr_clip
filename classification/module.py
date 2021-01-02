@@ -124,10 +124,10 @@ class XRayClassificationModule(pl.LightningModule):
         progress_bar, logs = self._get_progress_bar_and_logs(losses, metrics, stage)
 
         if len(progress_bar) > 0:
-            self.log_dict(progress_bar, prog_bar=True, logger=False, sync_dist=True)
+            self.log_dict(progress_bar, prog_bar=True, logger=False)
 
         if len(logs) > 0:
-            self.log_dict(logs, prog_bar=False, logger=True, sync_dist=True)
+            self.log_dict(logs, prog_bar=False, logger=True)
 
     def _configure_scheduler(self, optimizer):
         if self.hparams.scheduler == 'onecyclelr':
