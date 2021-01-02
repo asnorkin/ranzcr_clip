@@ -282,6 +282,9 @@ def cross_validate(args):
         if fold_oof_indices is None:  # global_rank != 0
             return
 
+        if fold == 0:
+            oof_probabilities = oof_probabilities.to(fold_oof_probabilities)
+
         oof_probabilities[fold_oof_indices] = fold_oof_probabilities
 
     # Verbose
