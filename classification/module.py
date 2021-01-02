@@ -80,6 +80,10 @@ class XRayClassificationModule(pl.LightningModule):
     def test_epoch_end(self, outputs):
         self._epoch_end(outputs, stage='test')
 
+    def on_fit_start(self):
+        # Calculate loss weights
+        self.criterion.weights = self.criterion.calculate_weights(self.trainer.datamodule.train_dataset.targets)
+
     def _on_epoch_start(self):
         self.test_probabilities = []
         self.test_labels = []

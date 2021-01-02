@@ -1,3 +1,4 @@
+import numpy as np
 from pytorch_lightning.metrics.functional.classification import auroc
 
 import torch
@@ -73,7 +74,7 @@ class LabelSmoothingCrossEntropy(nn.Module):
 
 
 class BCEWithLogitsLoss(nn.Module):
-    def __init__(self, epsilon=0.0, clip=0.0, weight=None, reduction='mean'):
+    def __init__(self, epsilon=0.0, clip=0.0, weights=None, reduction='mean'):
         super().__init__()
 
         assert clip >= 0.0
@@ -82,7 +83,7 @@ class BCEWithLogitsLoss(nn.Module):
         self._clip_logit_hi = torch.logit(1. - torch.tensor(clip)) if clip != 0.0 else None
 
         self.epsilon = epsilon
-        self.weight = weight
+        self.weights = weights
         self.reduction = reduction
 
     def forward(self, logits, targets):
@@ -95,6 +96,16 @@ class BCEWithLogitsLoss(nn.Module):
 
         # Compute bce
         bce = F.binary_cross_entropy_with_logits(
-            logits, targets, weight=self.weight, reduction=self.reduction)
+            logits, targets, weight=self.weights, reduction=self.reduction)
 
         return bce
+
+    @staticmethod
+    def calculate_weights(targets):
+        targets = torch.from_numpy(np.stack(targets))
+        positive_frac = targets.sum(dim=0) / targets.shape[0]
+        negative_frac = 1. - positive_frac
+        weights = negative_frac / positive_frac
+        weights[torch.isinf(weights) | torch.isnan(weights)] = 1.
+        weights = torch.sqrt(weights)
+        return weights
