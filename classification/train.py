@@ -212,7 +212,7 @@ def report(probabilities, labels):
         ['Class', 'Precision', 'Recall', 'F1-score', 'ROC AUC', 'Predicted objects', 'GT objects']
     report_table.float_format = '.3'
 
-    num_targets = labels.sum(dim=0)
+    num_targets = labels.sum(dim=0).long()
 
     for i, target in enumerate(TARGET_NAMES):
         report_table.add_row([
