@@ -123,8 +123,6 @@ class InferenceXRayDataset(XRayDataset):
         if sample['image'] is None:
             sample['image'] = self.load_image(item['image_file'])
 
-        print(sample['image'].shape)
-
         return sample
 
     @classmethod
