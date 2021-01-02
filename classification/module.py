@@ -94,11 +94,11 @@ class XRayClassificationModule(pl.LightningModule):
             if self.trainer.global_rank == 0:
                 test_labels = [torch.zeros_like(self.test_labels) for _ in range(self.trainer.world_size)]
                 dist.all_gather(test_labels, self.test_labels)
-                self.test_labels = test_labels
+                self.test_labels = torch.cat(test_labels)
 
                 test_probabilities = [torch.zeros_like(self.test_probabilities) for _ in range(self.trainer.world_size)]
                 dist.all_gather(test_probabilities, self.test_probabilities)
-                self.test_probabilities = test_probabilities
+                self.test_probabilities = torch.cat(test_probabilities)
             else:
                 return
 
