@@ -255,7 +255,7 @@ def train_single_model(args):
     np.save(osp.join(args.checkpoints_dir, 'val_probabilities.npy'), val_probabilities.cpu().numpy())
 
     # Save checkpoints
-    archive_checkpoints(args, oof_roc_auc.item(), folds=False)
+    archive_checkpoints(args, oof_roc_auc, folds=False)
 
 
 def cross_validate(args):
@@ -277,14 +277,14 @@ def cross_validate(args):
 
     # Verbose
     oof_targets = torch.as_tensor([item['target'] for item in data.items])
-    oof_roc_auc = batch_auc_roc(targets=oof_targets, probabilities=oof_probabilities)
+    oof_roc_auc = batch_auc_roc(targets=oof_targets, probabilities=oof_probabilities).item()
     print(f'OOF ROC AUC: {oof_roc_auc:.3f}')
 
     # Save OOF probabilities
     np.save(osp.join(args.checkpoints_dir, 'oof_probabilities.npy'), oof_probabilities.cpu().numpy())
 
     # Save checkpoints
-    archive_checkpoints(args, oof_roc_auc.item(), folds=True)
+    archive_checkpoints(args, oof_roc_auc, folds=True)
 
 
 def main(args):
