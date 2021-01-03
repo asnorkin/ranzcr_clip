@@ -189,10 +189,7 @@ def train_model(args, fold=-1, data=None):
     if trainer.global_rank != 0:
         return None, None
 
-    if fold >= 0:
-        return data.val_indices[fold], model.test_probabilities
-    else:
-        return model.test_labels, model.test_probabilities
+    return model.test_indices, model.test_labels, model.test_probabilities
 
 
 def report(probabilities, labels, checkpoints_dir=None):
@@ -253,7 +250,7 @@ def report(probabilities, labels, checkpoints_dir=None):
 
 def train_single_model(args):
     # Train model
-    val_labels, val_probabilities = train_model(args)
+    _, val_labels, val_probabilities = train_model(args)
     if val_labels is None:  # global_rank != 0
         return
 
@@ -273,21 +270,23 @@ def cross_validate(args):
     data.setup()
 
     # OOF probabilities placeholder
+    oof_labels = torch.zeros((len(data.items), 11), device='cpu', dtype=torch.float32)
     oof_probabilities = torch.zeros((len(data.items), 11), device='cpu', dtype=torch.float32)
 
     # Folds loop
     for fold in range(args.cv_folds):
         print(f'FOLD {fold}')
-        fold_oof_indices, fold_oof_probabilities = train_model(args, fold=fold, data=data)
+
+        # Train fold model
+        fold_oof_indices, fold_oof_labels, fold_oof_probabilities = train_model(args, fold=fold, data=data)
         if fold_oof_indices is not None:  # global_rank == 0
-            if len(fold_oof_probabilities) > len(fold_oof_indices):
-                fold_oof_probabilities = fold_oof_probabilities[:len(fold_oof_indices)]
+            assert len(fold_oof_indices) == len(fold_oof_labels) == len(fold_oof_probabilities)
+            oof_labels[fold_oof_indices] = fold_oof_labels.cpu().to(torch.float32)
             oof_probabilities[fold_oof_indices] = fold_oof_probabilities.cpu().to(torch.float32)
-        elif fold + 1 == args.cv_folds:
+        elif fold + 1 == args.cv_folds:  # global_rank != 0 in case end of folds loop return
             return
 
     # Verbose
-    oof_labels = torch.as_tensor([item['target'] for item in data.items])
     oof_roc_auc = report(probabilities=oof_probabilities, labels=oof_labels, checkpoints_dir=args.checkpoints_dir)
 
     # Save OOF probabilities

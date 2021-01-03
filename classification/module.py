@@ -33,6 +33,7 @@ class XRayClassificationModule(pl.LightningModule):
         self.criterion = BCEWithLogitsLoss(epsilon=self.hparams.smoothing_epsilon)
 
         # Placeholders
+        self.test_indices = None
         self.test_labels = None
         self.test_probabilities = None
 
@@ -86,8 +87,9 @@ class XRayClassificationModule(pl.LightningModule):
         self.criterion.weights = weights.to(self.device).to(self.dtype)
 
     def _on_epoch_start(self):
-        self.test_probabilities = []
+        self.test_indices = []
         self.test_labels = []
+        self.test_probabilities = []
 
     def _epoch_end(self, outputs, stage='val'):
         def _gather(key):
@@ -113,6 +115,7 @@ class XRayClassificationModule(pl.LightningModule):
         if stage == 'val':
             self.log('val_monitor', -roc_auc, sync_dist=True)
 
+        self.test_indices = _gather('indices')
         self.test_labels = labels
         self.test_probabilities = probabilities
 
@@ -134,6 +137,7 @@ class XRayClassificationModule(pl.LightningModule):
             return {
                 'probabilities': probabilities,
                 'labels': batch['target'],
+                'indices': batch['index'],
             }
 
     def _tta(self, batch, logits):

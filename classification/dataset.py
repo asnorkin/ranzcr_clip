@@ -81,6 +81,7 @@ class XRayDataset(Dataset):
         sample = {
             'image': item['image'],
             'target': item['target'],
+            'index': index,
         }
 
         if sample['image'] is None:
