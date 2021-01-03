@@ -35,6 +35,20 @@ drop_connect_rate=0.6
 A.RandomResizedCrop(scale=(0.85, 1.0))  
 A.HorizontalFlip()  
 
+#### Model 3: efficientnet_b0, VAL_AUC: 0.948, LB: 0.945, EPOCHS: 13
+
+###### Params
+input_shape=(512x512)  
+dropout_rate=0.5  
+drop_connect_rate=0.5  
+
+###### Augmentations
+A.RandomResizedCrop(scale=(0.85, 1.0))  
+A.HorizontalFlip()  
+A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1)
+A.Rotate(limit=3)
+A.CoarseDropout()
+
 ## Bugs and features
 - [x] validation and test TTA
 - [ ] NVIDIA DALI for dataloading
