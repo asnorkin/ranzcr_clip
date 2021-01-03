@@ -187,7 +187,7 @@ def train_model(args, fold=-1, data=None):
     trainer.test(model, test_dataloaders=data.val_dataloader())
 
     if trainer.global_rank != 0:
-        return None, None
+        return None, None, None
 
     return model.test_indices, model.test_labels, model.test_probabilities
 
