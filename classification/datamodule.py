@@ -85,9 +85,9 @@ class XRayClassificationDataModule(pl.LightningDataModule):
             A.HorizontalFlip(),
             A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1),
             A.Rotate(limit=3),
-            A.ImageCompression(quality_lower=50),
+            A.ImageCompression(quality_lower=80),
             A.MultiplicativeNoise(per_channel=True, elementwise=True),
-            A.CoarseDropout(min_holes=4, max_holes=12, min_width=4, max_width=12, min_height=4, max_height=12),
+            A.CoarseDropout(),
         ]
 
         post_transforms = [
