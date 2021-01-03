@@ -1,5 +1,7 @@
 import os
 import os.path as osp
+from queue import Queue
+from threading import Thread
 
 import cv2 as cv
 import numpy as np
@@ -13,21 +15,41 @@ def read_dirs(dirpath):
     return [osp.join(dirpath, dirname) for dirname in os.listdir(dirpath) if osp.isdir(dirname)]
 
 
-def load_items(labels_df):
-    pass
+def load_items(thread_id, results_queue, labels_df, images_dir, cache_images=False, cache_size=None):
+    classes = list(labels_df.columns[1:-1])
+
+    if isinstance(cache_size, int):
+        cache_size = (cache_size, cache_size)
+
+    items = []
+    for i, row in labels_df.iterrows():
+        image_file = osp.join(images_dir, f'{row.StudyInstanceUID}.jpg')
+        if osp.exists(image_file):
+            image = None
+            if cache_images:
+                image = XRayDataset.load_image(image_file)
+                if cache_size is not None:
+                    image = cv.resize(image, cache_size)
+
+            items.append({
+                'image_file': image_file,
+                'image': image,
+                'target': row[classes].values.astype(np.float),
+                'patient_id': row['PatientID'],
+            })
+
+    results_queue.put({
+        'thread_id': thread_id,
+        'items': items,
+    })
 
 
 class XRayDataset(Dataset):
-    def __init__(self, items, classes, transform=None, indices=None, cache_images=False, cache_size=None):
+    def __init__(self, items, classes, transform=None, indices=None):
         self.items = items
         self.classes = classes
         self.transform = transform
         self.indices = indices or list(range(len(items)))
-
-        self.cache_images = cache_images
-        self.cache_size = cache_size
-        if self.cache_size is not None and isinstance(self.cache_size, int):
-            self.cache_size = (self.cache_size, self.cache_size)
 
     def __len__(self):
         return len(self.indices)
@@ -62,14 +84,7 @@ class XRayDataset(Dataset):
         }
 
         if sample['image'] is None:
-            image = self.load_image(item['image_file'])
-
-            if self.cache_images:
-                if self.cache_size is not None:
-                    image = cv.resize(image, self.cache_size)
-                self.items[index]['image'] = image
-
-            sample['image'] = image
+            sample['image'] = self.load_image(item['image_file'])
 
         return sample
 
@@ -77,31 +92,46 @@ class XRayDataset(Dataset):
         return self.indices[index]
 
     @classmethod
-    def load_items(cls, labels_csv, images_dir):
-        items = []
-
+    def load_items(cls, labels_csv, images_dir, num_workers=1, cache_images=False, cache_size=None):
+        # Read labels
         labels_df = pd.read_csv(labels_csv)
         classes = list(labels_df.columns[1:-1])
 
-        with tqdm(desc='Loading dataset', unit='image', total=len(labels_df)) as progress_bar:
-            for i, row in labels_df.iterrows():
-                image_file = osp.join(images_dir, f'{row.StudyInstanceUID}.jpg')
-                if osp.exists(image_file):
-                    items.append({
-                        'image_file': image_file,
-                        'image': None,
-                        'target': row[classes].values.astype(np.float),
-                        'patient_id': row['PatientID'],
-                    })
+        print(f'Loading dataset in {num_workers} threads.')
 
-                progress_bar.update()
+        # Run threads
+        items_per_thread = len(labels_df) // num_workers + 1
+        results = Queue()
+        threads = []
+        for thread_id in range(num_workers):
+            # Get thread part of data
+            start = items_per_thread * thread_id
+            finish = start + items_per_thread
+            thread_df = labels_df.iloc[start: finish]
+
+            # Create and run thread
+            args = (thread_id, results, thread_df, images_dir, cache_images, cache_size)
+            thread = Thread(target=load_items, args=args)
+            thread.start()
+            threads.append(thread)
+
+        # Join all threads
+        [t.join() for t in threads]
+
+        # Concatenate the results into items
+        items = []
+        while not results.empty():
+            items.extend(results.get()['items'])
+
+        print(f'Dataset successfully loaded')
 
         return items, classes
 
     @classmethod
-    def create(cls, labels_csv, images_dir, transform=None, cache_images=False, cache_size=None):
-        items, classes = cls.load_items(labels_csv, images_dir)
-        return cls(items, classes, transform=transform, cache_images=cache_images, cache_size=cache_size)
+    def create(cls, labels_csv, images_dir, num_workers=1, transform=None, cache_images=False, cache_size=None):
+        items, classes = cls.load_items(labels_csv, images_dir, num_workers=num_workers,
+                                        cache_images=cache_images, cache_size=cache_size)
+        return cls(items, classes, transform=transform)
 
     @classmethod
     def load_image(cls, image_file):
