@@ -86,18 +86,13 @@ class XRayClassificationDataModule(pl.LightningDataModule):
             A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1),
             A.Rotate(limit=3),
             A.ImageCompression(quality_lower=50),
-            A.OneOf([
-                A.RandomFog(),
-                A.RandomSnow(),
-                A.RandomSunFlare(),
-            ]),
             A.MultiplicativeNoise(per_channel=True, elementwise=True),
-            A.CoarseDropout(),
+            A.CoarseDropout(min_holes=4, max_holes=12, min_width=4, max_width=12, min_height=4, max_height=12),
         ]
 
         post_transforms = [
-            # A.Normalize(mean=0.449, std=0.226, max_pixel_value=1.0),
-            # ToTensorV2(),
+            A.Normalize(mean=0.449, std=0.226, max_pixel_value=1.0),
+            ToTensorV2(),
         ]
 
         # Train dataset
