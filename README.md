@@ -38,10 +38,11 @@ A.HorizontalFlip()
 ## Bugs and features
 - [x] validation and test TTA
 - [ ] NVIDIA DALI for dataloading
-- [ ] infinite increase val_roc_auc
+- [x] infinite increase val_roc_auc
 - [x] tensorboard names
-- [ ] test synchronization for multi-gpu
+- [x] test synchronization for multi-gpu
 - [x] stats by classes
+- [x] multithreaded dataset loading with images caching
 
 ## Ideas to improve the model:
 - [x] hflip TTA;  :white_check_mark:VAL_AUC: +0.001, :white_check_mark:LB: +0.002
@@ -49,7 +50,9 @@ A.HorizontalFlip()
 - [ ] label smoothing
   - [x] :x:VAL_AUC: -0.1 for eps=0.05, may be better for smaller eps and together with harder augmentations
 - [ ] more augmentations
-- [ ] loss weights or sampling
+  - [x] :white_check_mark:VAL_AUC: +0.002, :x:LB: -0.001
+- [x] loss weights or sampling
+  - [x] weights ~ sqrt(neg / pos) clamped to [0.5, 2.0] :x:VAL_AUC: -0.001, :white_check_mark:LB: +0.004
 - [ ] different heads
 - [ ] rank_average
   - [x] :x:VAL_AUC: -0.42, didn't work for two predictions, may be better for ensemble
