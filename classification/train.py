@@ -279,10 +279,12 @@ def cross_validate(args):
     for fold in range(args.cv_folds):
         print(f'FOLD {fold}')
         fold_oof_indices, fold_oof_probabilities = train_model(args, fold=fold, data=data)
-        if fold_oof_indices is None:  # global_rank != 0
-            continue
-
-        oof_probabilities[fold_oof_indices] = fold_oof_probabilities.cpu().to(torch.float32)
+        if fold_oof_indices is not None:  # global_rank == 0
+            if len(fold_oof_probabilities) > len(fold_oof_indices):
+                fold_oof_probabilities = fold_oof_probabilities[:len(fold_oof_indices)]
+            oof_probabilities[fold_oof_indices] = fold_oof_probabilities.cpu().to(torch.float32)
+        elif fold + 1 == args.cv_folds:
+            return
 
     # Verbose
     oof_labels = torch.as_tensor([item['target'] for item in data.items])
