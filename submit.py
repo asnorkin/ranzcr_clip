@@ -44,10 +44,11 @@ def config_args():
 
 def create_batch_generator(args, model_config):
     transform = A.Compose([
-        A.Resize(height=model_config.input_height, width=model_config.input_width),
-        A.CLAHE(),
-        A.Normalize(mean=0.449, std=0.226),
-        ToTensorV2(),
+        A.Resize(height=model_config.input_height, width=model_config.input_width, always_apply=True),
+        # A.CLAHE(always_apply=True),
+        A.Normalize(mean=0.449, std=0.226, always_apply=True),    # ImageNet
+        # A.Normalize(mean=0.482, std=0.220, always_apply=True),    # Ranzcr
+        ToTensorV2(always_apply=True),
     ])
 
     dataset = InferenceXRayDataset.create(args.images_dir, transform=transform)

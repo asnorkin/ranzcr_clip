@@ -92,11 +92,11 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         ]
 
         post_transforms = [
-            A.FromFloat('uint8'),
-            # A.CLAHE(),
-            A.Normalize(mean=0.449, std=0.226),  # ImageNet
-            # A.Normalize(mean=0.482, std=0.220),    # Ranzcr
-            ToTensorV2(),
+            A.FromFloat('uint8', always_apply=True),
+            # A.CLAHE(always_apply=True),
+            A.Normalize(mean=0.449, std=0.226, always_apply=True),    # ImageNet
+            # A.Normalize(mean=0.482, std=0.220, always_apply=True),    # Ranzcr
+            ToTensorV2(always_apply=True),
         ]
 
         # Train dataset
