@@ -1,4 +1,4 @@
-model_type: resnext50_32x4d
+model_name: resnext50_32x4d
 
 input_height: 512
 input_width: 512

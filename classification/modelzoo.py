@@ -13,65 +13,44 @@ class ModelConfig(object):
         return self.params.get(item, None)
 
 
-def resnext50_32x4d(num_classes, pretrained=True, **kwargs):
-    kwargs['pretrained'] = pretrained
+def resnext50_32x4d(config, pretrained=True):
+    params = {'pretrained': pretrained}
 
     # Load original model
-    model = models.resnext50_32x4d(**kwargs)
+    model = models.resnext50_32x4d(**params)
 
     # Change head
     num_features = model.fc.in_features
-    model.fc = nn.Linear(num_features, num_classes)
+    model.fc = nn.Linear(num_features, config.num_classes)
 
     return model
 
 
-def resnet50(num_classes, pretrained=True, **kwargs):
-    kwargs['pretrained'] = pretrained
+def resnet50(config, pretrained=True):
+    params = {'pretrained': pretrained}
 
     # Load original model
-    model = models.resnet50(**kwargs)
+    model = models.resnet50(**params)
 
     # Change head
     num_features = model.fc.in_features
-    model.fc = nn.Linear(num_features, num_classes)
+    model.fc = nn.Linear(num_features, config.num_classes)
 
     return model
 
 
-def efficientnet_b0(num_classes, pretrained=True):
+def efficientnet(config, pretrained=True):
+    if getattr(config, 'width_coefficient', 1.0) != 1.0:
+        pretrained = False
+
     params = {
-        'model_name': 'efficientnet-b0',
-        'dropout_rate': 0.5,
-        'drop_connect_rate': 0.5,
+        'model_name': config.model_name.replace('_', '-'),
+        'in_channels': 1,
+        'num_classes': config.num_classes,
+        'dropout_rate': config.dropout_rate,
+        'drop_connect_rate': config.drop_connect_rate,
+        'width_coefficient': config.width_coefficient,
     }
-
-    return _efficientnet(num_classes, pretrained=pretrained, **params)
-
-
-def efficientnet_b3(num_classes, pretrained=True):
-    params = {
-        'model_name': 'efficientnet-b3',
-        'dropout_rate': 0.6,
-        'drop_connect_rate': 0.6,
-    }
-
-    return _efficientnet(num_classes, pretrained=pretrained, **params)
-
-
-def efficientnet_b7(num_classes, pretrained=True):
-    params = {
-        'model_name': 'efficientnet-b7',
-        'dropout_rate': 0.7,
-        'drop_connect_rate': 0.7,
-    }
-
-    return _efficientnet(num_classes, pretrained=pretrained, **params)
-
-
-def _efficientnet(num_classes, pretrained=True, **params):
-    params['num_classes'] = num_classes
-    params['in_channels'] = 1
 
     if pretrained:
         model = EfficientNet.from_pretrained(**params)
