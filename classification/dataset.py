@@ -54,7 +54,7 @@ class XRayDataset(Dataset):
     def __init__(self, items, classes, transform=None, indices=None, images=None):
         self.items = items
         self.classes = classes
-        self.images = self._setup_images(images)
+        self.images = images
         self.transform = transform
         self.indices = indices or list(range(len(items)))
 
@@ -101,15 +101,6 @@ class XRayDataset(Dataset):
     def _index(self, index):
         return self.indices[index]
 
-    def _setup_images(self, images):
-        if images is None:
-            return None
-
-        n_images, h, w = images.shape
-        return np.ctypeslib.as_array(
-            Array(ctypes.c_uint, n_images * h * w).get_obj()
-        ).reshape(n_images, h, w).astype('uint8')
-
     @classmethod
     def load_items(cls, labels_csv, images_dir, num_workers=1, cache_images=False, cache_size=None):
         # Read labels
@@ -145,7 +136,15 @@ class XRayDataset(Dataset):
             if cache_images:
                 images.extend(result['images'])
 
-        images = np.stack(images) if cache_images else None
+        if cache_images:
+            images = np.stack(images)
+            n_images, h, w = images.shape
+            images = np.ctypeslib.as_array(
+                Array(ctypes.c_uint, n_images * h * w).get_obj()
+            ).reshape(n_images, h, w).astype('uint8')
+        else:
+            images = None
+
         print(f'Dataset successfully loaded')
 
         return items, classes, images
