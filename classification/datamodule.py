@@ -95,6 +95,7 @@ class XRayClassificationDataModule(pl.LightningDataModule):
 
         post_transforms = [
             A.Normalize(mean=0.449, std=0.226),
+            A.CLAHE(),
             ToTensorV2(),
         ]
 
