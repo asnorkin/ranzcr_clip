@@ -138,7 +138,6 @@ class XRayDataset(Dataset):
     def load_image(cls, image_file):
         image = cv.imread(image_file, cv.IMREAD_GRAYSCALE)
         # image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
-        image = image.astype(np.float32) / 255.
         return image
 
 
