@@ -84,11 +84,9 @@ class XRayDataset(Dataset):
     def _load_sample(self, index):
         index = self._index(index)
         item = self.items[index]
-        if self.images is not None:
-            item['image'] = self.images[index]
 
         sample = {
-            'image': item['image'],
+            'image': self.images[index] if self.images is not None else None,
             'target': item['target'],
             'index': index,
         }
