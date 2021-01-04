@@ -28,7 +28,7 @@ class FoldPredictor(EnsemblePredictor):
         if output == 'rank':
             return rank_average(batch_predictions)
         elif output == 'mean':
-            return torch.cat(batch_predictions).mean(dim=0)
+            return torch.stack(batch_predictions).mean(dim=0)
         else:
             raise ValueError(f'Unexpected merge output type: {output}')
 
