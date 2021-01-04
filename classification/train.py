@@ -250,7 +250,7 @@ def report(probabilities, labels, checkpoints_dir=None):
 
 def train_single_model(args):
     # Train model
-    _, val_labels, val_probabilities = train_model(args)
+    val_indices, val_labels, val_probabilities = train_model(args)
     if val_labels is None:  # global_rank != 0
         return
 
@@ -258,6 +258,7 @@ def train_single_model(args):
     oof_roc_auc = report(probabilities=val_probabilities, labels=val_labels, checkpoints_dir=args.checkpoints_dir)
 
     # Save val probabilities
+    np.save(osp.join(args.checkpoints_dir, 'val_indices.npy'), val_indices.cpu().numpy())
     np.save(osp.join(args.checkpoints_dir, 'val_labels.npy'), val_labels.cpu().numpy())
     np.save(osp.join(args.checkpoints_dir, 'val_probabilities.npy'), val_probabilities.cpu().numpy())
 
