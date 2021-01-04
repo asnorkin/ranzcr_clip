@@ -284,6 +284,7 @@ def cross_validate(args):
         fold_oof_indices, fold_oof_labels, fold_oof_probabilities = train_model(args, fold=fold, data=data)
         if fold_oof_indices is not None:  # global_rank == 0
             assert len(fold_oof_indices) == len(fold_oof_labels) == len(fold_oof_probabilities)
+            fold_oof_indices = fold_oof_indices.cpu().numpy()
             oof_folds[fold_oof_indices] = fold
             oof_labels[fold_oof_indices] = fold_oof_labels.cpu().to(torch.float32)
             oof_probabilities[fold_oof_indices] = fold_oof_probabilities.cpu().to(torch.float32)
