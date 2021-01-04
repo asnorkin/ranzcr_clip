@@ -54,12 +54,15 @@ class XRayClassificationDataModule(pl.LightningDataModule):
             cache_size=(self.config.input_width, self.config.input_height))
 
         patient_ids = [item['patient_id'] for item in self.items]
+        targets = [item['target'] for item in self.items]
 
         if self.hparams.cv_folds is not None:
             self.cv = GroupKFold(n_splits=self.hparams.cv_folds)
 
+            # GroupKFold has no stratification by y
+            # y=targets only for convenience
             self.train_indices, self.val_indices = [], []
-            for fold_train_indices, fold_val_indices in self.cv.split(self.items, groups=patient_ids):
+            for fold_train_indices, fold_val_indices in self.cv.split(self.items, y=targets, groups=patient_ids):
                 self.train_indices.append(fold_train_indices)
                 self.val_indices.append(fold_val_indices)
 
