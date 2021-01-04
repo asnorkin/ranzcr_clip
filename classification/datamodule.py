@@ -88,15 +88,14 @@ class XRayClassificationDataModule(pl.LightningDataModule):
             A.HorizontalFlip(),
             A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1),
             A.Rotate(limit=3),
-            # A.ImageCompression(quality_lower=80),
-            # A.MultiplicativeNoise(per_channel=True, elementwise=True),
             A.CoarseDropout(),
         ]
 
         post_transforms = [
-            A.CLAHE(),
-            # A.Normalize(mean=0.449, std=0.226),  # ImageNet
-            A.Normalize(mean=0.482, std=0.220),    # Ranzcr
+            A.FromFloat('uint8'),
+            # A.CLAHE(),
+            A.Normalize(mean=0.449, std=0.226),  # ImageNet
+            # A.Normalize(mean=0.482, std=0.220),    # Ranzcr
             ToTensorV2(),
         ]
 
