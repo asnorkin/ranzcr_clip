@@ -258,6 +258,7 @@ def train_single_model(args):
     oof_roc_auc = report(probabilities=val_probabilities, labels=val_labels, checkpoints_dir=args.checkpoints_dir)
 
     # Save val probabilities
+    np.save(osp.join(args.checkpoints_dir, 'val_labels.npy'), val_labels.cpu().numpy())
     np.save(osp.join(args.checkpoints_dir, 'val_probabilities.npy'), val_probabilities.cpu().numpy())
 
     # Save checkpoints
@@ -270,6 +271,7 @@ def cross_validate(args):
     data.setup()
 
     # OOF probabilities placeholder
+    oof_folds = np.ones(len(data.items)) * -1
     oof_labels = torch.zeros((len(data.items), 11), device='cpu', dtype=torch.float32)
     oof_probabilities = torch.zeros((len(data.items), 11), device='cpu', dtype=torch.float32)
 
@@ -281,6 +283,7 @@ def cross_validate(args):
         fold_oof_indices, fold_oof_labels, fold_oof_probabilities = train_model(args, fold=fold, data=data)
         if fold_oof_indices is not None:  # global_rank == 0
             assert len(fold_oof_indices) == len(fold_oof_labels) == len(fold_oof_probabilities)
+            oof_folds[fold_oof_indices] = fold
             oof_labels[fold_oof_indices] = fold_oof_labels.cpu().to(torch.float32)
             oof_probabilities[fold_oof_indices] = fold_oof_probabilities.cpu().to(torch.float32)
         elif fold + 1 == args.cv_folds:  # global_rank != 0 in case end of folds loop return
@@ -290,6 +293,8 @@ def cross_validate(args):
     oof_roc_auc = report(probabilities=oof_probabilities, labels=oof_labels, checkpoints_dir=args.checkpoints_dir)
 
     # Save OOF probabilities
+    np.save(osp.join(args.checkpoints_dir, 'oof_folds.npy'), oof_folds)
+    np.save(osp.join(args.checkpoints_dir, 'oof_labels.npy'), oof_labels.cpu().numpy())
     np.save(osp.join(args.checkpoints_dir, 'oof_probabilities.npy'), oof_probabilities.cpu().numpy())
 
     # Save checkpoints
