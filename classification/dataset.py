@@ -1,5 +1,7 @@
+import ctypes
 import os
 import os.path as osp
+from multiprocessing import Array
 from queue import Queue
 from threading import Thread
 
@@ -21,33 +23,38 @@ def load_items(thread_id, results_queue, labels_df, images_dir, cache_images=Fal
     if isinstance(cache_size, int):
         cache_size = (cache_size, cache_size)
 
-    items = []
+    items, images = [], []
     for i, row in labels_df.iterrows():
         image_file = osp.join(images_dir, f'{row.StudyInstanceUID}.jpg')
         if osp.exists(image_file):
-            image = None
             if cache_images:
                 image = XRayDataset.load_image(image_file)
                 if cache_size is not None:
                     image = cv.resize(image, cache_size)
+                images.append(image)
 
             items.append({
                 'image_file': image_file,
-                'image': image,
                 'target': row[classes].values.astype(np.float),
                 'patient_id': row['PatientID'],
             })
 
-    results_queue.put({
+    result = {
         'thread_id': thread_id,
         'items': items,
-    })
+    }
+
+    if cache_images:
+        result['images'] = images
+
+    results_queue.put(result)
 
 
 class XRayDataset(Dataset):
-    def __init__(self, items, classes, transform=None, indices=None):
+    def __init__(self, items, classes, transform=None, indices=None, images=None):
         self.items = items
         self.classes = classes
+        self.images = self._setup_images(images)
         self.transform = transform
         self.indices = indices or list(range(len(items)))
 
@@ -77,6 +84,8 @@ class XRayDataset(Dataset):
     def _load_sample(self, index):
         index = self._index(index)
         item = self.items[index]
+        if self.images is not None:
+            item['image'] = self.images[index]
 
         sample = {
             'image': item['image'],
@@ -91,6 +100,15 @@ class XRayDataset(Dataset):
 
     def _index(self, index):
         return self.indices[index]
+
+    def _setup_images(self, images):
+        if images is None:
+            return None
+
+        n_images, h, w = images.shape
+        return np.ctypeslib.as_array(
+            Array(ctypes.c_uint, n_images * h * w).get_obj()
+        ).reshape(n_images, h, w).astype('uint8')
 
     @classmethod
     def load_items(cls, labels_csv, images_dir, num_workers=1, cache_images=False, cache_size=None):
@@ -120,19 +138,23 @@ class XRayDataset(Dataset):
         [t.join() for t in threads]
 
         # Concatenate the results into items
-        items = []
+        items, images = [], []
         while not results.empty():
-            items.extend(results.get()['items'])
+            result = results.get()
+            items.extend(result['items'])
+            if cache_images:
+                images.extend(result['images'])
 
+        images = np.stack(images) if cache_images else None
         print(f'Dataset successfully loaded')
 
-        return items, classes
+        return items, classes, images
 
     @classmethod
     def create(cls, labels_csv, images_dir, num_workers=1, transform=None, cache_images=False, cache_size=None):
-        items, classes = cls.load_items(labels_csv, images_dir, num_workers=num_workers,
-                                        cache_images=cache_images, cache_size=cache_size)
-        return cls(items, classes, transform=transform)
+        items, classes, images = cls.load_items(labels_csv, images_dir, num_workers=num_workers,
+                                                cache_images=cache_images, cache_size=cache_size)
+        return cls(items, classes, transform=transform, images=images)
 
     @classmethod
     def load_image(cls, image_file):

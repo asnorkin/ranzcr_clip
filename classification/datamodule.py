@@ -46,7 +46,7 @@ class XRayClassificationDataModule(pl.LightningDataModule):
             return
 
         # Load and split items
-        self.items, self.classes = XRayDataset.load_items(
+        self.items, self.classes, images = XRayDataset.load_items(
             labels_csv=self.hparams.labels_csv,
             images_dir=self.hparams.images_dir,
             num_workers=self.hparams.num_workers,
@@ -101,11 +101,13 @@ class XRayClassificationDataModule(pl.LightningDataModule):
 
         # Train dataset
         train_transform = A.Compose(pre_transforms + augmentations + post_transforms)
-        self.train_dataset = XRayDataset(items=train_items, classes=self.classes, transform=train_transform)
+        self.train_dataset = XRayDataset(items=train_items, classes=self.classes,
+                                         transform=train_transform, images=images)
 
         # Val dataset
         val_transform = A.Compose(pre_transforms + post_transforms)
-        self.val_dataset = XRayDataset(items=val_items, classes=self.classes, transform=val_transform)
+        self.val_dataset = XRayDataset(items=val_items, classes=self.classes,
+                                       transform=val_transform, images=images)
 
     def setup_fold(self, fold):
         self.train_dataset.setup_indices(self.train_indices[fold])
