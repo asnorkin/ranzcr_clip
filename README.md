@@ -74,3 +74,14 @@ A.CoarseDropout()
 - [ ] 5 folds ensemble
 - [ ] bigger efficientnet: 
   - [x] efficientnet_b3 512x512 :white_check_mark:VAL_AUC: +0.01, :white_check_mark:LB: +0.01
+  
+## Sources
+- [ ] Multi attention and augmentations https://www.kaggle.com/ipythonx/tf-keras-ranzcr-multi-attention-efficientnet
+- [ ] Segmentation and external data https://www.kaggle.com/c/ranzcr-clip-catheter-line-classification/discussion/204776
+- [ ] AUC loss https://arxiv.org/pdf/2012.03173.pdf
+- [ ] Catether detection https://arxiv.org/pdf/1907.01656.pdf
+- [ ] External data https://www.kaggle.com/c/ranzcr-clip-catheter-line-classification/discussion/207602
+- [ ] Moco 
+  - [ ] https://www.analyticsvidhya.com/blog/2020/08/moco-v2-in-pytorch/
+  - [ ] https://github.com/facebookresearch/moco/blob/master/main_moco.py
+  - [ ] https://openreview.net/pdf?id=kmN6SQIjk-r
