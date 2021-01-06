@@ -19,7 +19,7 @@ def grouped_train_test_split(items, groups=None, test_size=0.2, random_state=Non
 
 
 class XRayClassificationDataModule(pl.LightningDataModule):
-    def __init__(self, hparams):
+    def __init__(self, hparams, items=None, classes=None, images=None):
         super().__init__()
 
         self.config = ModelConfig(hparams.config_file)
@@ -29,8 +29,9 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         self.batch_size = self.hparams.batch_size
 
         # Common placeholders
-        self.items = None
-        self.classes = None
+        self.items = items
+        self.classes = classes
+        self.images = images
         self.train_dataset = None
         self.val_dataset = None
         self.train_sampler = None
@@ -46,12 +47,13 @@ class XRayClassificationDataModule(pl.LightningDataModule):
             return
 
         # Load and split items
-        self.items, self.classes, images = XRayDataset.load_items(
-            labels_csv=self.hparams.labels_csv,
-            images_dir=self.hparams.images_dir,
-            num_workers=self.hparams.num_workers,
-            cache_images=self.hparams.cache_images,
-            cache_size=(self.config.input_width, self.config.input_height))
+        if self.items is None or self.classes is None:
+            self.items, self.classes, self.images = XRayDataset.load_items(
+                labels_csv=self.hparams.labels_csv,
+                images_dir=self.hparams.images_dir,
+                num_workers=self.hparams.num_workers,
+                cache_images=self.hparams.cache_images,
+                cache_size=(self.config.input_width, self.config.input_height))
 
         patient_ids = [item['patient_id'] for item in self.items]
         targets = [item['target'] for item in self.items]
@@ -80,8 +82,6 @@ class XRayClassificationDataModule(pl.LightningDataModule):
 
         # Transforms
         pre_transforms = []
-        if not self.hparams.cache_images:
-            pre_transforms.append(A.Resize(height=self.config.input_height, width=self.config.input_width))
 
         augmentations = [
             A.RandomResizedCrop(height=self.config.input_height, width=self.config.input_width, scale=(0.85, 1.0)),
@@ -92,6 +92,7 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         ]
 
         post_transforms = [
+            A.Resize(height=self.config.input_height, width=self.config.input_width),
             A.FromFloat('uint8', always_apply=True),
             A.CLAHE(always_apply=True),
             # A.Normalize(mean=0.449, std=0.226, always_apply=True),    # ImageNet
@@ -102,12 +103,16 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         # Train dataset
         train_transform = A.Compose(pre_transforms + augmentations + post_transforms)
         self.train_dataset = XRayDataset(items=train_items, classes=self.classes,
-                                         transform=train_transform, images=images)
+                                         transform=train_transform, images=self.images)
 
         # Val dataset
         val_transform = A.Compose(pre_transforms + post_transforms)
         self.val_dataset = XRayDataset(items=val_items, classes=self.classes,
-                                       transform=val_transform, images=images)
+                                       transform=val_transform, images=self.images)
+
+        if self.hparams.cv_folds is not None:
+            self.train_dataset.setup_indices(self.train_indices[self.hparams.fold])
+            self.val_dataset.setup_indices(self.val_indices[self.hparams.fold])
 
     def setup_fold(self, fold):
         self.train_dataset.setup_indices(self.train_indices[fold])

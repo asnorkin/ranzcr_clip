@@ -14,6 +14,7 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from sklearn.metrics import classification_report
 
 from classification.datamodule import XRayClassificationDataModule
+from classification.dataset import XRayDataset
 from classification.loss import batch_auc_roc, reduce_auc_roc
 from classification.module import XRayClassificationModule
 from submit import TARGET_NAMES
@@ -144,7 +145,7 @@ def archive_checkpoints(args, oof_roc_auc, folds):
     print(f'Checkpoints successfully archived!')
 
 
-def train_model(args, fold=-1, data=None):
+def train_model(args, fold=-1, items=None, classes=None, images=None):
     # Set up seed
     pl.seed_everything(seed=args.seed + fold)
 
@@ -152,12 +153,7 @@ def train_model(args, fold=-1, data=None):
     args.fold = fold
 
     # If no data provided create it
-    if data is None:
-        data = XRayClassificationDataModule(args)
-
-    # Setup data fold
-    if fold >= 0:
-        data.setup_fold(fold)
+    data = XRayClassificationDataModule(args, items=items, classes=classes, images=images)
 
     # Create model
     model = XRayClassificationModule(args)
@@ -187,9 +183,9 @@ def train_model(args, fold=-1, data=None):
     trainer.test(model, test_dataloaders=data.val_dataloader())
 
     if trainer.global_rank != 0:
-        return None, None, None
+        return None
 
-    return model.test_indices, model.test_labels, model.test_probabilities
+    return trainer
 
 
 def report(probabilities, labels, checkpoints_dir=None):
@@ -250,9 +246,14 @@ def report(probabilities, labels, checkpoints_dir=None):
 
 def train_single_model(args):
     # Train model
-    val_indices, val_labels, val_probabilities = train_model(args)
-    if val_labels is None:  # global_rank != 0
+    trainer = train_model(args)
+    if trainer is None:  # global_rank != 0
         return
+
+    # Get val results
+    val_indices = trainer.model.test_indices
+    val_labels = trainer.model.test_labels
+    val_probabilities = trainer.model.test_probabilities
 
     # Verbose
     oof_roc_auc = report(probabilities=val_probabilities, labels=val_labels, checkpoints_dir=args.checkpoints_dir)
@@ -267,27 +268,33 @@ def train_single_model(args):
 
 
 def cross_validate(args):
-    # Create and setup datamodule
-    data = XRayClassificationDataModule(args)
-    data.setup()
+    # Load items only once
+    items, classes, images = XRayDataset.load_items(
+        labels_csv=args.labels_csv,
+        images_dir=args.images_dir,
+        num_workers=args.num_workers)
 
     # OOF probabilities placeholder
-    oof_folds = np.ones(len(data.items)) * -1
-    oof_labels = torch.zeros((len(data.items), 11), device='cpu', dtype=torch.float32)
-    oof_probabilities = torch.zeros((len(data.items), 11), device='cpu', dtype=torch.float32)
+    oof_folds = -1 * np.ones(len(items))
+    oof_labels = -1 * torch.ones((len(items), 11), device='cpu', dtype=torch.float32)
+    oof_probabilities = -1 * torch.ones((len(items), 11), device='cpu', dtype=torch.float32)
 
     # Folds loop
     for fold in range(args.cv_folds):
         print(f'FOLD {fold}')
 
         # Train fold model
-        fold_oof_indices, fold_oof_labels, fold_oof_probabilities = train_model(args, fold=fold, data=data)
-        if fold_oof_indices is not None:  # global_rank == 0
+        fold_trainer = train_model(args, fold=fold, items=items, classes=classes, images=images)
+        if fold_trainer is not None:  # global_rank == 0
+            fold_oof_indices = fold_trainer.model.test_indices.cpu().numpy()
+            fold_oof_labels = fold_trainer.model.test_labels.cpu().to(torch.float32)
+            fold_oof_probabilities = fold_trainer.model.test_probabilities.cpu().to(torch.float32)
+
             assert len(fold_oof_indices) == len(fold_oof_labels) == len(fold_oof_probabilities)
-            fold_oof_indices = fold_oof_indices.cpu().numpy()
+
             oof_folds[fold_oof_indices] = fold
-            oof_labels[fold_oof_indices] = fold_oof_labels.cpu().to(torch.float32)
-            oof_probabilities[fold_oof_indices] = fold_oof_probabilities.cpu().to(torch.float32)
+            oof_labels[fold_oof_indices] = fold_oof_labels
+            oof_probabilities[fold_oof_indices] = fold_oof_probabilities
         elif fold + 1 == args.cv_folds:  # global_rank != 0 in case end of folds loop return
             return
 
