@@ -250,10 +250,15 @@ def train_single_model(args):
     if trainer is None:  # global_rank != 0
         return
 
+    # Get model
+    model = trainer.model
+    if hasattr(model, 'module'):  # DP, DDP
+        model = model.module
+
     # Get val results
-    val_indices = trainer.model.test_indices
-    val_labels = trainer.model.test_labels
-    val_probabilities = trainer.model.test_probabilities
+    val_indices = model.test_indices
+    val_labels = model.test_labels
+    val_probabilities = model.test_probabilities
 
     # Verbose
     oof_roc_auc = report(probabilities=val_probabilities, labels=val_labels, checkpoints_dir=args.checkpoints_dir)
@@ -286,9 +291,13 @@ def cross_validate(args):
         # Train fold model
         fold_trainer = train_model(args, fold=fold, items=items, classes=classes, images=images)
         if fold_trainer is not None:  # global_rank == 0
-            fold_oof_indices = fold_trainer.model.test_indices.cpu().numpy()
-            fold_oof_labels = fold_trainer.model.test_labels.cpu().to(torch.float32)
-            fold_oof_probabilities = fold_trainer.model.test_probabilities.cpu().to(torch.float32)
+            model = fold_trainer.model
+            if hasattr(model, 'module'):  # DP, DDP
+                model = model.module
+
+            fold_oof_indices = model.test_indices.cpu().numpy()
+            fold_oof_labels = model.test_labels.cpu().to(torch.float32)
+            fold_oof_probabilities = model.test_probabilities.cpu().to(torch.float32)
 
             assert len(fold_oof_indices) == len(fold_oof_labels) == len(fold_oof_probabilities)
 
