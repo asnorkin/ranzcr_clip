@@ -150,7 +150,7 @@ def get_checkpoint_to_resume(checkpoints_dir: str, fold: int) -> Optional[str]:
         print(f'Found many checkpoint files:{msg}')
 
     if len(checkpoint_files) > 0:
-        checkpoint_file = osp.join(checkpoints_dir, checkpoint_files[0])
+        checkpoint_file = checkpoint_files[0]
         print(f'Resume training from checkpoint: {checkpoint_file}')
         return checkpoint_file
 
