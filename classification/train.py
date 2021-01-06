@@ -152,8 +152,9 @@ def train_model(args, fold=-1, items=None, classes=None, images=None):
     # Set up fold
     args.fold = fold
 
-    # If no data provided create it
+    # Create and setup data
     data = XRayClassificationDataModule(args, items=items, classes=classes, images=images)
+    data.setup()
 
     # Create model
     model = XRayClassificationModule(args)
