@@ -99,6 +99,9 @@ class XRayDataset(Dataset):
 
     @classmethod
     def load_items(cls, labels_csv, images_dir, num_workers=1, cache_images=False, cache_size=None):
+        # num_workers = 0 case
+        num_workers = max(1, num_workers)
+
         # Read labels
         labels_df = pd.read_csv(labels_csv)
         classes = list(labels_df.columns[1:-1])
