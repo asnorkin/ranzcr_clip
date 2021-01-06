@@ -108,11 +108,11 @@ class XRayClassificationModule(pl.LightningModule):
 
         roc_auc = batch_auc_roc(labels, probabilities)
 
-        if stage == 'val':
-            self.log(f'{stage}_roc_auc', roc_auc, logger=False, prog_bar=True, sync_dist=True)
+        if stage in {'val', 'test'}:
             self.log(f'metrics/{stage}_roc_auc', roc_auc, logger=True, prog_bar=False, sync_dist=True)
 
         if stage == 'val':
+            self.log(f'{stage}_roc_auc', roc_auc, logger=False, prog_bar=True, sync_dist=True)
             self.log('val_monitor', -roc_auc, sync_dist=True)
 
         self.test_indices = _gather('indices')
