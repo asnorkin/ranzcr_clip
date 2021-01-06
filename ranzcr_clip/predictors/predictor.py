@@ -7,21 +7,17 @@ import torch
 from albumentations.pytorch.transforms import ToTensorV2
 from torch.backends import cudnn
 
-from classification.loss import rank_average
 from classification.modelzoo import ModelConfig
 from classification.module import XRayClassificationModule
 
 
-class Predictor(object):
-    def predict(self, sample):
-        return self.predict_batch([sample])[0]
-
-    def predict_batch(self, batch):
+class Predictor:
+    def predict_batch(self, batch: dict) -> torch.Tensor:
         raise NotImplementedError
 
 
-class TorchModelMixin(object):
-    def __init__(self, model, config):
+class TorchModelMixin:
+    def __init__(self, model: torch.nn.Module, config: ModelConfig):
         super().__init__()
 
         # Save config and model
@@ -79,7 +75,9 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
             ]
         )
 
-    def predict_batch(self, batch, preprocess=False, output='probabilities', tta=True):
+    def predict_batch(
+        self, batch, preprocess: bool = False, output: str = 'probabilities', tta: bool = True
+    ) -> torch.Tensor:
         assert output in {'logits', 'probabilities', 'binary'}
 
         # Preprocess
@@ -113,7 +111,7 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
         return predictions
 
     @classmethod
-    def create_from_checkpoints(cls, checkpoints_dir):
+    def create_from_checkpoints(cls, checkpoints_dir: str) -> Predictor:
         config = ModelConfig(osp.join(checkpoints_dir, 'config.yml'))
         model_files = [
             osp.join(checkpoints_dir, fname) for fname in os.listdir(checkpoints_dir) if fname.startswith('single')

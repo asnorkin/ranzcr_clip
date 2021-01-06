@@ -1,7 +1,9 @@
 import os.path as osp
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
+from typing import Union
 
 import albumentations as A
+import numpy as np
 import pandas as pd
 import torch
 from albumentations.pytorch.transforms import ToTensorV2
@@ -9,6 +11,7 @@ from torch.utils.data.dataloader import DataLoader
 from tqdm import tqdm
 
 from classification.dataset import InferenceXRayDataset
+from classification.modelzoo import ModelConfig
 from predictors import FoldPredictor, TorchModelPredictor
 
 
@@ -27,7 +30,7 @@ TARGET_NAMES = [
 ]
 
 
-def config_args():
+def config_args() -> Namespace:
     ap = ArgumentParser()
 
     ap.add_argument('--images_dir', type=str, required=True)
@@ -43,7 +46,7 @@ def config_args():
     return args
 
 
-def create_batch_generator(args, model_config):
+def create_batch_generator(args: Namespace, model_config: ModelConfig) -> DataLoader:
     transform = A.Compose(
         [
             A.Resize(height=model_config.input_height, width=model_config.input_width, always_apply=True),
@@ -67,7 +70,7 @@ def create_batch_generator(args, model_config):
     )
 
 
-def save(predictions, image_uids, output_dir):
+def save(predictions: np.ndarray, image_uids: list, output_dir: str) -> pd.DataFrame:
     predictions = pd.DataFrame(data=predictions, columns=TARGET_NAMES)
     predictions['StudyInstanceUID'] = image_uids
 
@@ -75,7 +78,7 @@ def save(predictions, image_uids, output_dir):
     return predictions
 
 
-def create_predictor(args):
+def create_predictor(args: Namespace) -> Union[FoldPredictor, TorchModelPredictor]:
     if args.predictor_type == 'fold':
         predictor = FoldPredictor.create_from_checkpoints(args.checkpoints_dir)
     elif args.predictor_type == 'single':
@@ -86,7 +89,7 @@ def create_predictor(args):
     return predictor
 
 
-def main(args):
+def main(args: Namespace):
     # Create batch generator and predictor
     predictor = create_predictor(args)
     batch_generator = create_batch_generator(args, model_config=predictor.config)

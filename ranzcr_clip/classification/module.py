@@ -1,12 +1,13 @@
 from argparse import ArgumentParser, Namespace
 from math import ceil
+from typing import Optional, Tuple, Union
 
 import pytorch_lightning as pl
 
 import torch
 from torch import distributed as dist
 from torch.optim import AdamW
-from torch.optim.lr_scheduler import OneCycleLR
+from torch.optim.lr_scheduler import OneCycleLR, ReduceLROnPlateau
 
 from classification import modelzoo
 from classification.loss import batch_auc_roc, BCEWithLogitsLoss
@@ -14,7 +15,7 @@ from classification.modelzoo import ModelConfig
 
 
 class XRayClassificationModule(pl.LightningModule):
-    def __init__(self, hparams):
+    def __init__(self, hparams: Namespace):
         super().__init__()
 
         if isinstance(hparams, dict):
@@ -37,7 +38,7 @@ class XRayClassificationModule(pl.LightningModule):
         self.test_labels = None
         self.test_probabilities = None
 
-    def forward(self, images):
+    def forward(self, images: torch.Tensor) -> torch.Tensor:
         return self.model(images)
 
     def configure_optimizers(self):
@@ -47,7 +48,7 @@ class XRayClassificationModule(pl.LightningModule):
 
         return [optimizer], [scheduler]
 
-    def loss(self, logits, batch):
+    def loss(self, logits: torch.Tensor, batch: dict) -> tuple:
         losses = dict()
         losses['total'] = self.criterion(logits, batch['target'])
 
@@ -79,7 +80,7 @@ class XRayClassificationModule(pl.LightningModule):
     def test_epoch_end(self, outputs):
         self._epoch_end(outputs, stage='test')
 
-    def setup(self, stage: str):
+    def setup(self, _stage: Optional[str] = None):
         # Calculate loss weights
         weights = self.criterion.calculate_weights(self.trainer.datamodule.train_dataset.targets)
         self.criterion.weights = weights.to(self.device).to(self.dtype)
@@ -89,7 +90,7 @@ class XRayClassificationModule(pl.LightningModule):
         self.test_labels = []
         self.test_probabilities = []
 
-    def _epoch_end(self, outputs, stage='val'):
+    def _epoch_end(self, outputs: list, stage: str = 'val') -> None:
         def _gather(key):
             node_values = torch.cat([output[key] for output in outputs])
             if self.trainer.world_size == 1:
@@ -117,15 +118,12 @@ class XRayClassificationModule(pl.LightningModule):
         self.test_labels = labels
         self.test_probabilities = probabilities
 
-    def _step(self, batch, _batch_idx, stage):
+    def _step(self, batch: dict, _batch_idx: int, stage: str) -> Optional[dict]:
         logits = self.forward(batch['image'])
         losses, metrics = self.loss(logits, batch)
 
         if stage in {'train', 'val'}:
             self._log(losses, metrics, stage)
-
-        if stage == 'train':
-            return losses['total']
 
         if stage in {'val', 'test'}:
             if self.hparams.use_tta:
@@ -138,11 +136,13 @@ class XRayClassificationModule(pl.LightningModule):
                 'indices': batch['index'],
             }
 
-    def _tta(self, batch, logits):
+        return losses['total']
+
+    def _tta(self, batch: dict, logits: torch.Tensor) -> torch.Tensor:
         logits_hflip = self.forward(torch.flip(batch['image'], dims=(-1,)))
         return (logits + logits_hflip) / 2
 
-    def _log(self, losses, metrics, stage):
+    def _log(self, losses: dict, metrics: dict, stage: str) -> None:
         progress_bar, logs = self._get_progress_bar_and_logs(losses, metrics, stage)
 
         if len(progress_bar) > 0:
@@ -151,7 +151,7 @@ class XRayClassificationModule(pl.LightningModule):
         if len(logs) > 0:
             self.log_dict(logs, prog_bar=False, logger=True)
 
-    def _configure_scheduler(self, optimizer):
+    def _configure_scheduler(self, optimizer: torch.optim.Optimizer) -> Union[OneCycleLR, ReduceLROnPlateau]:
         if self.hparams.scheduler == 'onecyclelr':
             dataset_size = len(self.trainer.datamodule.train_dataset)
             step_period = self.hparams.batch_size * self.trainer.accumulate_grad_batches * self.trainer.world_size
@@ -169,7 +169,7 @@ class XRayClassificationModule(pl.LightningModule):
             }
         elif self.hparams.scheduler == 'reducelronplateau':
             scheduler = {
-                'scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(
+                'scheduler': ReduceLROnPlateau(
                     optimizer,
                     factor=self.hparams.lr_factor,
                     patience=self.hparams.lr_patience,
@@ -187,7 +187,7 @@ class XRayClassificationModule(pl.LightningModule):
         return scheduler
 
     @staticmethod
-    def _get_progress_bar_and_logs(losses, metrics, stage):
+    def _get_progress_bar_and_logs(losses: dict, metrics: dict, stage: str) -> Tuple[dict, dict]:
         # Progress bar
         progress_bar = {}
         if stage != 'train':
@@ -205,7 +205,7 @@ class XRayClassificationModule(pl.LightningModule):
         return progress_bar, logs
 
     @staticmethod
-    def add_model_specific_args(parent_parser):
+    def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
 
         # Loss
@@ -239,7 +239,7 @@ class XRayClassificationModule(pl.LightningModule):
         return parser
 
     @staticmethod
-    def build_model(config, checkpoint_file=None):
+    def build_model(config: ModelConfig, checkpoint_file: Optional[str] = None) -> torch.nn.Module:
         if config.model_name.startswith('efficientnet'):
             model_builder = modelzoo.efficientnet
         else:

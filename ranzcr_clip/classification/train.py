@@ -2,7 +2,8 @@ import os
 import os.path as osp
 import warnings
 import zipfile
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -22,7 +23,7 @@ from submit import TARGET_NAMES
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
-def add_program_specific_args(parent_parser):
+def add_program_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
     parser = ArgumentParser(parents=[parent_parser], add_help=False)
 
     # General
@@ -39,7 +40,7 @@ def add_program_specific_args(parent_parser):
     return parser
 
 
-def config_args():
+def config_args() -> Namespace:
     parser = ArgumentParser()
 
     parser = add_program_specific_args(parser)
@@ -63,17 +64,17 @@ def config_args():
     return args
 
 
-def create_if_not_exist(dirpath):
+def create_if_not_exist(dirpath: str):
     if not osp.exists(dirpath):
         os.makedirs(dirpath)
 
 
-def create_dirs(args):
+def create_dirs(args: Namespace):
     create_if_not_exist(args.checkpoints_dir)
     create_if_not_exist(args.log_dir)
 
 
-def checkpoint_callback(args, fold=-1):
+def checkpoint_callback(args: Namespace, fold: int = -1) -> ModelCheckpoint:
     if not osp.exists(args.checkpoints_dir):
         os.makedirs(args.checkpoints_dir)
 
@@ -90,21 +91,21 @@ def checkpoint_callback(args, fold=-1):
     )
 
 
-def early_stopping_callback(args):
+def early_stopping_callback(args: Namespace) -> EarlyStopping:
     return EarlyStopping(monitor='val_monitor', mode=args.monitor_mode, patience=args.es_patience, verbose=True)
 
 
-def tensorboard_logger(args, fold=-1):
+def tensorboard_logger(args: Namespace, fold: int = -1) -> TensorBoardLogger:
     version = f'fold{fold}' if fold >= 0 else 'single'
     return TensorBoardLogger(save_dir=args.log_dir, name=args.experiment, version=version, default_hp_metric=False)
 
 
-def lr_monitor_callback():
+def lr_monitor_callback() -> LearningRateMonitor:
     return LearningRateMonitor(log_momentum=False)
 
 
-def archive_checkpoints(args, oof_roc_auc, folds):
-    print(f'Archive checkpoints..')
+def archive_checkpoints(args: Namespace, oof_roc_auc: float, folds: bool):
+    print('Archive checkpoints..')
 
     # Archive file
     archive_name = f'{args.experiment}_auc{oof_roc_auc:.3f}'
@@ -135,10 +136,10 @@ def archive_checkpoints(args, oof_roc_auc, folds):
             arcname = fname.replace('=', '')  # Remove kaggle illegal character '='
             zipf.write(osp.join(args.checkpoints_dir, fname), arcname=arcname)
 
-    print(f'Checkpoints successfully archived!')
+    print('Checkpoints successfully archived!')
 
 
-def get_checkpoint_to_resume(checkpoints_dir, fold):
+def get_checkpoint_to_resume(checkpoints_dir: str, fold: int) -> Optional[str]:
     prefix = f'fold{fold}' if fold >= 0 else 'single'
     checkpoint_files = [
         osp.join(checkpoints_dir, fname) for fname in os.listdir(checkpoints_dir) if fname.startswith(prefix)
@@ -156,7 +157,14 @@ def get_checkpoint_to_resume(checkpoints_dir, fold):
     return None
 
 
-def train_model(args, fold=-1, items=None, classes=None, images=None):
+def train_model(
+    args: Namespace,
+    fold: int = -1,
+    items: Optional[List] = None,
+    classes: Optional[List] = None,
+    images: Optional[np.ctypeslib.array] = None,
+) -> Optional[pl.Trainer]:
+
     # Set up seed
     pl.seed_everything(seed=args.seed + fold)
 
@@ -204,7 +212,7 @@ def train_model(args, fold=-1, items=None, classes=None, images=None):
     return trainer
 
 
-def report(probabilities, labels, checkpoints_dir=None):
+def report(probabilities: torch.Tensor, labels: torch.Tensor, checkpoints_dir: Optional[str] = None) -> float:
     # OOF ROC AUC
     oof_roc_auc_values = batch_auc_roc(targets=labels, probabilities=probabilities, reduction=None)
     oof_roc_auc = reduce_auc_roc(oof_roc_auc_values, reduction='mean').item()
@@ -238,7 +246,7 @@ def report(probabilities, labels, checkpoints_dir=None):
         )
 
     # Add macro average
-    def _macro(key):
+    def _macro(key: str):
         return np.mean([_report[target][key] for target in TARGET_NAMES])
 
     rows.append(
@@ -267,7 +275,7 @@ def report(probabilities, labels, checkpoints_dir=None):
     return oof_roc_auc
 
 
-def train_single_model(args):
+def train_single_model(args: Namespace):
     # Train model
     trainer = train_model(args)
     if trainer is None:  # global_rank != 0
@@ -295,7 +303,7 @@ def train_single_model(args):
     archive_checkpoints(args, oof_roc_auc, folds=False)
 
 
-def cross_validate(args):
+def cross_validate(args: Namespace):
     # Load items only once
     items, classes, images = XRayDataset.load_items(
         labels_csv=args.labels_csv, images_dir=args.images_dir, num_workers=args.num_workers
@@ -341,7 +349,7 @@ def cross_validate(args):
     archive_checkpoints(args, oof_roc_auc, folds=True)
 
 
-def main(args):
+def main(args: Namespace):
     # Create checkpoints and logs dirs
     create_dirs(args)
 

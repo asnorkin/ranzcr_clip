@@ -5,15 +5,15 @@ from torchvision import models
 from efficientnet_pytorch import EfficientNet
 
 
-class ModelConfig(object):
-    def __init__(self, config_file):
+class ModelConfig:
+    def __init__(self, config_file: str):
         self.params = yaml.safe_load(open(config_file).read())
 
     def __getattr__(self, item):
         return self.params.get(item, None)
 
 
-def resnext50_32x4d(config, pretrained=True):
+def resnext50_32x4d(config: ModelConfig, pretrained: bool = True) -> nn.Module:
     params = {'pretrained': pretrained}
 
     # Load original model
@@ -26,7 +26,7 @@ def resnext50_32x4d(config, pretrained=True):
     return model
 
 
-def resnet50(config, pretrained=True):
+def resnet50(config: ModelConfig, pretrained: bool = True) -> nn.Module:
     params = {'pretrained': pretrained}
 
     # Load original model
@@ -39,7 +39,7 @@ def resnet50(config, pretrained=True):
     return model
 
 
-def efficientnet(config, pretrained=True):
+def efficientnet(config: ModelConfig, pretrained: bool = True) -> nn.Module:
     if getattr(config, 'width_coefficient', 1.0) != 1.0:
         pretrained = False
 

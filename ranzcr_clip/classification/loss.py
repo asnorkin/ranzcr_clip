@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 from pytorch_lightning.metrics.functional.classification import auroc
 
@@ -27,7 +29,7 @@ def reduce_auc_roc(auc_roc_values, reduction='mean'):
 
     result = auc_roc_values[auc_roc_values != -1]
     if len(result) == 0:
-        print(f'No targets has valid ROC AUC, result is zero.')
+        print('No targets has valid ROC AUC, result is zero.')
         return torch.tensor(0.0).to(auc_roc_values)
 
     return reduce_loss(result, reduction=reduction)
@@ -74,7 +76,13 @@ class LabelSmoothingCrossEntropy(nn.Module):
 
 
 class BCEWithLogitsLoss(nn.Module):
-    def __init__(self, epsilon=0.0, clip=0.0, weights=None, reduction='mean'):
+    def __init__(
+        self,
+        epsilon: float = 0.0,
+        clip: float = 0.0,
+        weights: Optional[torch.Tensor] = None,
+        reduction: Optional[str] = 'mean',
+    ):
         super().__init__()
 
         assert clip >= 0.0
@@ -86,7 +94,7 @@ class BCEWithLogitsLoss(nn.Module):
         self.weights = weights
         self.reduction = reduction
 
-    def forward(self, logits, targets):
+    def forward(self, logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         # Smooth labels
         targets = (1 - 2 * self.epsilon) * targets + self.epsilon
 
@@ -100,7 +108,7 @@ class BCEWithLogitsLoss(nn.Module):
         return bce
 
     @staticmethod
-    def calculate_weights(targets, lo=0.5, hi=2.0):
+    def calculate_weights(targets: list, lo: float = 0.5, hi: float = 2.0) -> torch.Tensor:
         targets = torch.from_numpy(np.stack(targets))
         positive_frac = targets.sum(dim=0) / targets.shape[0]
         negative_frac = 1.0 - positive_frac

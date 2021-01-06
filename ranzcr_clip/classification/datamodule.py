@@ -1,25 +1,35 @@
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 from math import floor
+from typing import Optional
 
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 
+import numpy as np
 import pytorch_lightning as pl
 from sklearn.model_selection import GroupKFold, GroupShuffleSplit
-from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.dataloader import DataLoader, Sampler
 
 from classification.dataset import XRayDataset
 from classification.modelzoo import ModelConfig
 
 
-def grouped_train_test_split(items, groups=None, test_size=0.2, random_state=None):
+def grouped_train_test_split(
+    items: list, groups: list, test_size: float = 0.2, random_state: int = None
+) -> (list, list):
     gss = GroupShuffleSplit(n_splits=2, test_size=test_size, random_state=random_state)
     train_indices, test_indices = next(gss.split(X=items, y=None, groups=groups))
     return [items[i] for i in train_indices], [items[i] for i in test_indices]
 
 
 class XRayClassificationDataModule(pl.LightningDataModule):
-    def __init__(self, hparams, items=None, classes=None, images=None):
+    def __init__(
+        self,
+        hparams: Namespace,
+        items: Optional[list] = None,
+        classes: Optional[list] = None,
+        images: Optional[np.ctypeslib.array] = None,
+    ):
         super().__init__()
 
         self.config = ModelConfig(hparams.config_file)
@@ -41,7 +51,7 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         self.train_indices = None
         self.val_indices = None
 
-    def setup(self, stage=None):
+    def setup(self, stage: str = None) -> None:
         # Skip setup on test stage
         if stage != 'train' and self.train_dataset is not None:
             return
@@ -114,11 +124,11 @@ class XRayClassificationDataModule(pl.LightningDataModule):
             self.train_dataset.setup_indices(self.train_indices[self.hparams.fold])
             self.val_dataset.setup_indices(self.val_indices[self.hparams.fold])
 
-    def setup_fold(self, fold):
+    def setup_fold(self, fold: int) -> None:
         self.train_dataset.setup_indices(self.train_indices[fold])
         self.val_dataset.setup_indices(self.val_indices[fold])
 
-    def setup_input_size(self, input_size):
+    def setup_input_size(self, input_size: int) -> None:
         current_input_size = self.train_dataset.transforms[0].height
         current_batch_size = self.batch_size
         new_batch_size = floor((input_size / current_input_size) ** 2 * current_batch_size)
@@ -135,13 +145,15 @@ class XRayClassificationDataModule(pl.LightningDataModule):
 
         print(f'Successfully set up nwe input size {input_size} with new batch size {new_batch_size}')
 
-    def train_dataloader(self):
+    def train_dataloader(self) -> DataLoader:
         return self._dataloader(self.train_dataset, shuffle=True)
 
-    def val_dataloader(self):
+    def val_dataloader(self) -> DataLoader:
         return self._dataloader(self.val_dataset)
 
-    def _dataloader(self, dataset, sampler=None, shuffle=False):
+    def _dataloader(
+        self, dataset: XRayDataset, sampler: Optional[Sampler] = None, shuffle: bool = False
+    ) -> DataLoader:
         params = {
             'drop_last': False,
             'pin_memory': True,
@@ -157,7 +169,7 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         return DataLoader(dataset, **params)
 
     @staticmethod
-    def add_data_specific_args(parent_parser):
+    def add_data_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
 
         # Paths

@@ -4,27 +4,35 @@ import os.path as osp
 from multiprocessing import Array
 from queue import Queue
 from threading import Thread
+from typing import Optional, Union
 
+import albumentations as A
 import cv2 as cv
 import numpy as np
 import pandas as pd
 from torch.utils.data.dataset import Dataset
-from torch.utils.data.sampler import WeightedRandomSampler
 from tqdm import tqdm
 
 
-def read_dirs(dirpath):
+def read_dirs(dirpath: str) -> list:
     return [osp.join(dirpath, dirname) for dirname in os.listdir(dirpath) if osp.isdir(dirname)]
 
 
-def load_items(thread_id, results_queue, labels_df, images_dir, cache_images=False, cache_size=None):
+def load_items(
+    thread_id: int,
+    results_queue: Queue,
+    labels_df: pd.DataFrame,
+    images_dir: str,
+    cache_images: bool = False,
+    cache_size: Union[int, tuple] = None,
+) -> None:
     classes = list(labels_df.columns[1:-1])
 
     if isinstance(cache_size, int):
         cache_size = (cache_size, cache_size)
 
     items, images = [], []
-    for i, row in labels_df.iterrows():
+    for _, row in labels_df.iterrows():
         image_file = osp.join(images_dir, f'{row.StudyInstanceUID}.jpg')
         if osp.exists(image_file):
             if cache_images:
@@ -52,8 +60,21 @@ def load_items(thread_id, results_queue, labels_df, images_dir, cache_images=Fal
     results_queue.put(result)
 
 
-class XRayDataset(Dataset):
-    def __init__(self, items, classes, transform=None, indices=None, images=None):
+class ImageItemsDataset(Dataset):
+    @classmethod
+    def load_image(cls, image_file: str) -> np.ndarray:
+        image = cv.imread(image_file, cv.IMREAD_GRAYSCALE)
+        # image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+        return image
+
+    def __init__(
+        self,
+        items: list,
+        classes: list,
+        transform: A.BasicTransform = None,
+        indices: list = None,
+        images: Optional[np.ctypeslib.array] = None,
+    ):
         self.items = items
         self.classes = classes
         self.images = images
@@ -74,14 +95,22 @@ class XRayDataset(Dataset):
 
         return sample
 
-    @property
-    def targets(self):
-        return [item['target'] for item in self.items]
-
-    def setup_indices(self, indices):
+    def setup_indices(self, indices: list) -> None:
         self.indices = indices
 
-    def _load_sample(self, index):
+    def _index(self, index: int) -> int:
+        return self.indices[index]
+
+    def _load_sample(self, index: int) -> dict:
+        raise NotImplementedError
+
+
+class XRayDataset(ImageItemsDataset):
+    @property
+    def targets(self) -> list:
+        return [item['target'] for item in self.items]
+
+    def _load_sample(self, index: int) -> dict:
         index = self._index(index)
         item = self.items[index]
 
@@ -96,11 +125,15 @@ class XRayDataset(Dataset):
 
         return sample
 
-    def _index(self, index):
-        return self.indices[index]
-
     @classmethod
-    def load_items(cls, labels_csv, images_dir, num_workers=1, cache_images=False, cache_size=None):
+    def load_items(
+        cls,
+        labels_csv: str,
+        images_dir: str,
+        num_workers: int = 1,
+        cache_images: bool = False,
+        cache_size: Union[int, tuple] = None,
+    ):
         # num_workers = 0 case
         num_workers = max(1, num_workers)
 
@@ -127,7 +160,7 @@ class XRayDataset(Dataset):
             threads.append(thread)
 
         # Join all threads
-        [t.join() for t in threads]
+        map(lambda t: t.join, threads)
 
         # Concatenate the results into items
         items, images = [], []
@@ -148,26 +181,28 @@ class XRayDataset(Dataset):
         else:
             images = None
 
-        print(f'Dataset successfully loaded')
+        print('Dataset successfully loaded')
 
         return items, classes, images
 
     @classmethod
-    def create(cls, labels_csv, images_dir, num_workers=1, transform=None, cache_images=False, cache_size=None):
+    def create(
+        cls,
+        labels_csv: str,
+        images_dir: str,
+        num_workers: int = 1,
+        transform: A.BasicTransform = None,
+        cache_images: bool = False,
+        cache_size: Union[int, tuple] = None,
+    ):
         items, classes, images = cls.load_items(
             labels_csv, images_dir, num_workers=num_workers, cache_images=cache_images, cache_size=cache_size
         )
         return cls(items, classes, transform=transform, images=images)
 
-    @classmethod
-    def load_image(cls, image_file):
-        image = cv.imread(image_file, cv.IMREAD_GRAYSCALE)
-        # image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
-        return image
 
-
-class InferenceXRayDataset(XRayDataset):
-    def _load_sample(self, index):
+class InferenceXRayDataset(ImageItemsDataset):
+    def _load_sample(self, index: int) -> dict:
         item = self.items[self._index(index)]
 
         sample = {
@@ -181,7 +216,7 @@ class InferenceXRayDataset(XRayDataset):
         return sample
 
     @classmethod
-    def load_items(cls, images_dir):
+    def load_items(cls, images_dir: str) -> list:
         image_files = [osp.join(images_dir, fname) for fname in os.listdir(images_dir)]
 
         items = []
@@ -197,33 +232,11 @@ class InferenceXRayDataset(XRayDataset):
         return items
 
     @classmethod
-    def create(cls, images_dir, transform=None):
+    def create(cls, images_dir: str, transform: A.BasicTransform = None):
         items = cls.load_items(images_dir)
-        return cls(items, classes=None, transform=transform)
-
-
-class StratifiedLabelSampler(WeightedRandomSampler):
-    def __init__(self, items, replacement=True):
-        weights = self._calculate_weights(items)
-        super().__init__(weights, weights.shape[0], replacement)
-
-    @staticmethod
-    def _calculate_weights(items):
-        return np.ones(len(items))
-        # label_counts = np.zeros_like(items[0]['target'])
-        # for item in items:
-        #     label_counts += item['target']
-        #
-        # no_label_counts = np.ones_like(label_counts) * len(items) - label_counts
-        #
-        # weights = np.asarray([1. / np.sqrt(label_counts[item['target']]) for item in items])
-        # return weights
+        return cls(items, classes=[], transform=transform)
 
 
 if __name__ == '__main__':
-    labels_csv = 'data/train.csv'
-    images_dir = 'data/train'
     dataset = XRayDataset.create(labels_csv='data/train.csv', images_dir='data/train')
-
-    sampler = StratifiedLabelSampler(dataset.items)
-    print(1)
+    print('XRayDataset successfully created!')

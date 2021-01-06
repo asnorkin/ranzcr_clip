@@ -10,30 +10,31 @@ from predictors.predictor import Predictor, TorchModelPredictor
 
 
 class EnsemblePredictor(Predictor):
-    def __init__(self, config, predictors):
+    def __init__(self, config: ModelConfig, predictors: list):
         self.config = config
         self.predictors = predictors
 
-    def predict_batch(self, batch, **predict_kwargs):
+    def predict_batch(self, batch, **predict_kwargs) -> torch.Tensor:
         batch_predictions = [predictor.predict_batch(batch, **predict_kwargs) for predictor in self.predictors]
         batch_predictions = self.merge(batch_predictions)
         return batch_predictions
 
-    def merge(self, batch_predictions):
+    def merge(self, batch_predictions: list) -> torch.Tensor:
         raise NotImplementedError
 
 
 class FoldPredictor(EnsemblePredictor):
-    def merge(self, batch_predictions, output='mean'):
-        if output == 'rank':
-            return rank_average(batch_predictions)
-        elif output == 'mean':
-            return torch.stack(batch_predictions).mean(dim=0)
-        else:
+    def merge(self, batch_predictions: list, output: str = 'mean') -> torch.Tensor:
+        if output not in {'rank', 'mean'}:
             raise ValueError(f'Unexpected merge output type: {output}')
 
+        if output == 'rank':
+            return rank_average(batch_predictions)
+
+        return torch.stack(batch_predictions).mean(dim=0)
+
     @classmethod
-    def create_from_checkpoints(cls, checkpoints_dir):
+    def create_from_checkpoints(cls, checkpoints_dir: str):
         config = ModelConfig(osp.join(checkpoints_dir, 'config.yml'))
         predictors = []
         for fname in os.listdir(checkpoints_dir):
