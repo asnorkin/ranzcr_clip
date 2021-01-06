@@ -227,6 +227,9 @@ class XRayClassificationModule(pl.LightningModule):
         # TTA
         parser.add_argument('--use_tta', action='store_true')
 
+        # Resume
+        parser.add_argument('--resume', action='store_true')
+
         return parser
 
     @staticmethod

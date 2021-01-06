@@ -145,6 +145,24 @@ def archive_checkpoints(args, oof_roc_auc, folds):
     print(f'Checkpoints successfully archived!')
 
 
+def get_checkpoint_to_resume(checkpoints_dir, fold):
+    prefix = f'fold{fold}' if fold >= 0 else 'single'
+    checkpoint_files = [osp.join(checkpoints_dir, fname)
+                        for fname in os.listdir(checkpoints_dir)
+                        if fname.startswith(prefix)]
+
+    if len(checkpoint_files) > 1:
+        msg = '\n\t' + '\n\t'.join(checkpoint_files)
+        print(f'Found many checkpoint files:{msg}')
+
+    if len(checkpoint_files) > 0:
+        checkpoint_file = osp.join(checkpoints_dir, checkpoint_files[0])
+        print(f'Resume training from checkpoint: {checkpoint_file}')
+        return checkpoint_file
+
+    return None
+
+
 def train_model(args, fold=-1, items=None, classes=None, images=None):
     # Set up seed
     pl.seed_everything(seed=args.seed + fold)
@@ -170,6 +188,10 @@ def train_model(args, fold=-1, items=None, classes=None, images=None):
 
     if args.scheduler == 'reducelronplateau':
         callbacks.append(early_stopping_callback(args))
+
+    # Checkpoint to resume from if needed
+    if args.resume:
+        args.resume_from_checkpoint = get_checkpoint_to_resume(args.checkpoints_dir, fold)
 
     # Create trainer
     trainer = pl.Trainer.from_argparse_args(args, callbacks=callbacks, logger=logger)
