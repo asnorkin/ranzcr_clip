@@ -33,11 +33,13 @@ def load_items(thread_id, results_queue, labels_df, images_dir, cache_images=Fal
                     image = cv.resize(image, cache_size)
                 images.append(image)
 
-            items.append({
-                'image_file': image_file,
-                'target': row[classes].values.astype(np.float),
-                'patient_id': row['PatientID'],
-            })
+            items.append(
+                {
+                    'image_file': image_file,
+                    'target': row[classes].values.astype(np.float),
+                    'patient_id': row['PatientID'],
+                }
+            )
 
     result = {
         'thread_id': thread_id,
@@ -116,7 +118,7 @@ class XRayDataset(Dataset):
             # Get thread part of data
             start = items_per_thread * thread_id
             finish = start + items_per_thread
-            thread_df = labels_df.iloc[start: finish]
+            thread_df = labels_df.iloc[start:finish]
 
             # Create and run thread
             args = (thread_id, results, thread_df, images_dir, cache_images, cache_size)
@@ -138,9 +140,11 @@ class XRayDataset(Dataset):
         if cache_images:
             images = np.stack(images)
             n_images, h, w = images.shape
-            images = np.ctypeslib.as_array(
-                Array(ctypes.c_uint, n_images * h * w).get_obj()
-            ).reshape(n_images, h, w).astype('uint8')
+            images = (
+                np.ctypeslib.as_array(Array(ctypes.c_uint, n_images * h * w).get_obj())
+                .reshape(n_images, h, w)
+                .astype('uint8')
+            )
         else:
             images = None
 
@@ -150,8 +154,9 @@ class XRayDataset(Dataset):
 
     @classmethod
     def create(cls, labels_csv, images_dir, num_workers=1, transform=None, cache_images=False, cache_size=None):
-        items, classes, images = cls.load_items(labels_csv, images_dir, num_workers=num_workers,
-                                                cache_images=cache_images, cache_size=cache_size)
+        items, classes, images = cls.load_items(
+            labels_csv, images_dir, num_workers=num_workers, cache_images=cache_images, cache_size=cache_size
+        )
         return cls(items, classes, transform=transform, images=images)
 
     @classmethod
@@ -181,11 +186,13 @@ class InferenceXRayDataset(XRayDataset):
 
         items = []
         for image_file in tqdm(image_files, desc='Loading dataset', unit='image'):
-            items.append({
-                'image': None,
-                'image_file': image_file,
-                'instance_uid': osp.splitext(osp.basename(image_file))[0],
-            })
+            items.append(
+                {
+                    'image': None,
+                    'image_file': image_file,
+                    'instance_uid': osp.splitext(osp.basename(image_file))[0],
+                }
+            )
 
         return items
 

@@ -28,7 +28,7 @@ def reduce_auc_roc(auc_roc_values, reduction='mean'):
     result = auc_roc_values[auc_roc_values != -1]
     if len(result) == 0:
         print(f'No targets has valid ROC AUC, result is zero.')
-        return torch.tensor(0.).to(auc_roc_values)
+        return torch.tensor(0.0).to(auc_roc_values)
 
     return reduce_loss(result, reduction=reduction)
 
@@ -80,7 +80,7 @@ class BCEWithLogitsLoss(nn.Module):
         assert clip >= 0.0
         self.clip = clip
         self._clip_logit_lo = torch.logit(torch.tensor(clip)) if clip != 0.0 else None
-        self._clip_logit_hi = torch.logit(1. - torch.tensor(clip)) if clip != 0.0 else None
+        self._clip_logit_hi = torch.logit(1.0 - torch.tensor(clip)) if clip != 0.0 else None
 
         self.epsilon = epsilon
         self.weights = weights
@@ -95,8 +95,7 @@ class BCEWithLogitsLoss(nn.Module):
             logits = torch.clamp(logits, self._clip_logit_lo, self._clip_logit_hi)
 
         # Compute bce
-        bce = F.binary_cross_entropy_with_logits(
-            logits, targets, weight=self.weights, reduction=self.reduction)
+        bce = F.binary_cross_entropy_with_logits(logits, targets, weight=self.weights, reduction=self.reduction)
 
         return bce
 
@@ -104,9 +103,9 @@ class BCEWithLogitsLoss(nn.Module):
     def calculate_weights(targets, lo=0.5, hi=2.0):
         targets = torch.from_numpy(np.stack(targets))
         positive_frac = targets.sum(dim=0) / targets.shape[0]
-        negative_frac = 1. - positive_frac
+        negative_frac = 1.0 - positive_frac
         weights = negative_frac / positive_frac
-        weights[torch.isinf(weights) | torch.isnan(weights)] = 1.
+        weights[torch.isinf(weights) | torch.isnan(weights)] = 1.0
         weights = torch.sqrt(weights)
         weights = torch.clamp(weights, min=lo, max=hi)
         return weights

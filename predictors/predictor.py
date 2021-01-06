@@ -71,21 +71,22 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.transform = A.Compose([
-            A.Resize(height=self.config.input_height, width=self.config.input_width),
-            A.Normalize(max_pixel_value=1.0),
-            ToTensorV2(),
-        ])
+        self.transform = A.Compose(
+            [
+                A.Resize(height=self.config.input_height, width=self.config.input_width),
+                A.Normalize(max_pixel_value=1.0),
+                ToTensorV2(),
+            ]
+        )
 
     def predict_batch(self, batch, preprocess=False, output='probabilities', tta=True):
         assert output in {'logits', 'probabilities', 'binary'}
 
         # Preprocess
         if preprocess:
-            batch['image'] = torch.stack([
-                self.transform(image=batch['image'][i])['image']
-                for i in range(len(batch['image']))
-            ])
+            batch['image'] = torch.stack(
+                [self.transform(image=batch['image'][i])['image'] for i in range(len(batch['image']))]
+            )
 
         # Infer
         batch['image'] = batch['image'].to(self.device).to(self.float)
@@ -114,8 +115,9 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
     @classmethod
     def create_from_checkpoints(cls, checkpoints_dir):
         config = ModelConfig(osp.join(checkpoints_dir, 'config.yml'))
-        model_files = [osp.join(checkpoints_dir, fname) for fname in os.listdir(checkpoints_dir)
-                       if fname.startswith('single')]
+        model_files = [
+            osp.join(checkpoints_dir, fname) for fname in os.listdir(checkpoints_dir) if fname.startswith('single')
+        ]
         if len(model_files) != 1:
             raise RuntimeError(f'Found not unique single model checkpoint: {model_files}')
 

@@ -41,9 +41,7 @@ class XRayClassificationModule(pl.LightningModule):
         return self.model(images)
 
     def configure_optimizers(self):
-        optimizer = AdamW(
-            self.model.parameters(), lr=self.hparams.lr,
-            weight_decay=self.hparams.weight_decay)
+        optimizer = AdamW(self.model.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.weight_decay)
 
         scheduler = self._configure_scheduler(optimizer)
 
@@ -156,22 +154,29 @@ class XRayClassificationModule(pl.LightningModule):
     def _configure_scheduler(self, optimizer):
         if self.hparams.scheduler == 'onecyclelr':
             dataset_size = len(self.trainer.datamodule.train_dataset)
-            step_period = self.hparams.batch_size \
-                          * self.trainer.accumulate_grad_batches \
-                          * self.trainer.world_size
+            step_period = self.hparams.batch_size * self.trainer.accumulate_grad_batches * self.trainer.world_size
             steps_per_epoch = ceil(dataset_size / step_period)
             scheduler = {
                 'scheduler': OneCycleLR(
-                    optimizer, max_lr=self.hparams.lr, pct_start=self.hparams.lr_pct_start,
-                    div_factor=self.hparams.lr_div_factor, steps_per_epoch=steps_per_epoch,
-                    epochs=self.hparams.max_epochs),
+                    optimizer,
+                    max_lr=self.hparams.lr,
+                    pct_start=self.hparams.lr_pct_start,
+                    div_factor=self.hparams.lr_div_factor,
+                    steps_per_epoch=steps_per_epoch,
+                    epochs=self.hparams.max_epochs,
+                ),
                 'interval': 'step',
             }
         elif self.hparams.scheduler == 'reducelronplateau':
             scheduler = {
                 'scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(
-                    optimizer, factor=self.hparams.lr_factor, patience=self.hparams.lr_patience,
-                    mode=self.hparams.monitor_mode, threshold=0.0, verbose=True),
+                    optimizer,
+                    factor=self.hparams.lr_factor,
+                    patience=self.hparams.lr_patience,
+                    mode=self.hparams.monitor_mode,
+                    threshold=0.0,
+                    verbose=True,
+                ),
                 'monitor': 'val_monitor',
                 'interval': 'epoch',
                 'frequency': self.hparams.check_val_every_n_epoch,
@@ -191,11 +196,11 @@ class XRayClassificationModule(pl.LightningModule):
         # Logs
         logs = dict()
         if len(losses) > 0:
-            logs.update({f'losses/{stage}_{loss_name}': loss_value
-                         for loss_name, loss_value in losses.items()})
+            logs.update({f'losses/{stage}_{loss_name}': loss_value for loss_name, loss_value in losses.items()})
         if len(metrics) > 0:
-            logs.update({f'metrics/{stage}_{metric_name}': metric_value
-                         for metric_name, metric_value in metrics.items()})
+            logs.update(
+                {f'metrics/{stage}_{metric_name}': metric_value for metric_name, metric_value in metrics.items()}
+            )
 
         return progress_bar, logs
 
@@ -208,14 +213,15 @@ class XRayClassificationModule(pl.LightningModule):
 
         # Optimizer and scheduler
         parser.add_argument('--weight_decay', type=float, default=1e-6)
-        parser.add_argument('--scheduler', type=str, default='reducelronplateau',
-                            choices=['reducelronplateau', 'onecyclelr'])
+        parser.add_argument(
+            '--scheduler', type=str, default='reducelronplateau', choices=['reducelronplateau', 'onecyclelr']
+        )
 
         # OneCycleLR
         parser.add_argument('--lr', type=float, default=1e-3)
         parser.add_argument('--lr_pct_start', type=float, default=0.05)
-        parser.add_argument('--lr_div_factor', type=float, default=1000.)
-        parser.add_argument('--lr_final_div_factor', type=float, default=1000.)
+        parser.add_argument('--lr_div_factor', type=float, default=1000.0)
+        parser.add_argument('--lr_final_div_factor', type=float, default=1000.0)
 
         # ReduceLROnPlateau
         parser.add_argument('--lr_factor', type=float, default=0.1)

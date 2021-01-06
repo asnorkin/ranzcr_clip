@@ -53,7 +53,8 @@ class XRayClassificationDataModule(pl.LightningDataModule):
                 images_dir=self.hparams.images_dir,
                 num_workers=self.hparams.num_workers,
                 cache_images=self.hparams.cache_images,
-                cache_size=(self.config.input_width, self.config.input_height))
+                cache_size=(self.config.input_width, self.config.input_height),
+            )
 
         patient_ids = [item['patient_id'] for item in self.items]
         targets = [item['target'] for item in self.items]
@@ -73,12 +74,9 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         elif self.hparams.val_size is None:
             train_items = val_items = self.items
         else:
-            train_items, val_items = \
-                grouped_train_test_split(
-                    self.items,
-                    groups=patient_ids,
-                    test_size=self.hparams.val_size,
-                    random_state=self.hparams.seed)
+            train_items, val_items = grouped_train_test_split(
+                self.items, groups=patient_ids, test_size=self.hparams.val_size, random_state=self.hparams.seed
+            )
 
         # Transforms
         pre_transforms = []
@@ -96,19 +94,21 @@ class XRayClassificationDataModule(pl.LightningDataModule):
             A.FromFloat('uint8', always_apply=True),
             A.CLAHE(always_apply=True),
             # A.Normalize(mean=0.449, std=0.226, always_apply=True),    # ImageNet
-            A.Normalize(mean=0.482, std=0.220, always_apply=True),    # Ranzcr
+            A.Normalize(mean=0.482, std=0.220, always_apply=True),  # Ranzcr
             ToTensorV2(always_apply=True),
         ]
 
         # Train dataset
         train_transform = A.Compose(pre_transforms + augmentations + post_transforms)
-        self.train_dataset = XRayDataset(items=train_items, classes=self.classes,
-                                         transform=train_transform, images=self.images)
+        self.train_dataset = XRayDataset(
+            items=train_items, classes=self.classes, transform=train_transform, images=self.images
+        )
 
         # Val dataset
         val_transform = A.Compose(pre_transforms + post_transforms)
-        self.val_dataset = XRayDataset(items=val_items, classes=self.classes,
-                                       transform=val_transform, images=self.images)
+        self.val_dataset = XRayDataset(
+            items=val_items, classes=self.classes, transform=val_transform, images=self.images
+        )
 
         if self.hparams.cv_folds is not None:
             self.train_dataset.setup_indices(self.train_indices[self.hparams.fold])
@@ -169,8 +169,12 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         parser.add_argument('--num_workers', type=int, default=8)
         parser.add_argument('--batch_size', type=int, default=32)
         parser.add_argument('--cv_folds', type=int, default=None)
-        parser.add_argument('--val_size', type=float, default=None,
-                            help='val_size=None means use all train set without augmentations for validation')
+        parser.add_argument(
+            '--val_size',
+            type=float,
+            default=None,
+            help='val_size=None means use all train set without augmentations for validation',
+        )
         parser.add_argument('--cache_images', action='store_true')
 
         return parser

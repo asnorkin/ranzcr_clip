@@ -86,24 +86,17 @@ def checkpoint_callback(args, fold=-1):
         save_top_k=1,
         save_last=False,
         monitor='val_monitor',
-        mode=args.monitor_mode)
+        mode=args.monitor_mode,
+    )
 
 
 def early_stopping_callback(args):
-    return EarlyStopping(
-        monitor='val_monitor',
-        mode=args.monitor_mode,
-        patience=args.es_patience,
-        verbose=True)
+    return EarlyStopping(monitor='val_monitor', mode=args.monitor_mode, patience=args.es_patience, verbose=True)
 
 
 def tensorboard_logger(args, fold=-1):
     version = f'fold{fold}' if fold >= 0 else 'single'
-    return TensorBoardLogger(
-        save_dir=args.log_dir,
-        name=args.experiment,
-        version=version,
-        default_hp_metric=False)
+    return TensorBoardLogger(save_dir=args.log_dir, name=args.experiment, version=version, default_hp_metric=False)
 
 
 def lr_monitor_callback():
@@ -147,9 +140,9 @@ def archive_checkpoints(args, oof_roc_auc, folds):
 
 def get_checkpoint_to_resume(checkpoints_dir, fold):
     prefix = f'fold{fold}' if fold >= 0 else 'single'
-    checkpoint_files = [osp.join(checkpoints_dir, fname)
-                        for fname in os.listdir(checkpoints_dir)
-                        if fname.startswith(prefix)]
+    checkpoint_files = [
+        osp.join(checkpoints_dir, fname) for fname in os.listdir(checkpoints_dir) if fname.startswith(prefix)
+    ]
 
     if len(checkpoint_files) > 1:
         msg = '\n\t' + '\n\t'.join(checkpoint_files)
@@ -221,8 +214,9 @@ def report(probabilities, labels, checkpoints_dir=None):
 
     # Create sklearn classification report
     predictions = torch.where(probabilities > 0.5, 1, 0)
-    _report = classification_report(predictions.cpu().numpy(), labels.cpu().numpy(),
-                                    target_names=TARGET_NAMES, output_dict=True)
+    _report = classification_report(
+        predictions.cpu().numpy(), labels.cpu().numpy(), target_names=TARGET_NAMES, output_dict=True
+    )
 
     # Add ROC AUC to the report
     for i, target in enumerate(TARGET_NAMES):
@@ -231,27 +225,33 @@ def report(probabilities, labels, checkpoints_dir=None):
     # Covert report to the matrix
     rows = []
     for i, target in enumerate(TARGET_NAMES):
-        rows.append([
-            target,
-            _report[target]['precision'],
-            _report[target]['recall'],
-            _report[target]['f1-score'],
-            _report[target]['roc_auc'],
-            _report[target]['support'],
-            num_targets[i].item()])
+        rows.append(
+            [
+                target,
+                _report[target]['precision'],
+                _report[target]['recall'],
+                _report[target]['f1-score'],
+                _report[target]['roc_auc'],
+                _report[target]['support'],
+                num_targets[i].item(),
+            ]
+        )
 
     # Add macro average
     def _macro(key):
         return np.mean([_report[target][key] for target in TARGET_NAMES])
 
-    rows.append([
-        'Macro total',
-        _macro('precision'),
-        _macro('recall'),
-        _macro('f1-score'),
-        oof_roc_auc,
-        len(predictions),
-        len(labels)])
+    rows.append(
+        [
+            'Macro total',
+            _macro('precision'),
+            _macro('recall'),
+            _macro('f1-score'),
+            oof_roc_auc,
+            len(predictions),
+            len(labels),
+        ]
+    )
 
     # Generate table
     columns = ['Class', 'Precision', 'Recall', 'F1-score', 'ROC AUC', 'Predicted objects', 'GT objects']
@@ -298,9 +298,8 @@ def train_single_model(args):
 def cross_validate(args):
     # Load items only once
     items, classes, images = XRayDataset.load_items(
-        labels_csv=args.labels_csv,
-        images_dir=args.images_dir,
-        num_workers=args.num_workers)
+        labels_csv=args.labels_csv, images_dir=args.images_dir, num_workers=args.num_workers
+    )
 
     # OOF probabilities placeholder
     oof_folds = -1 * np.ones(len(items))
