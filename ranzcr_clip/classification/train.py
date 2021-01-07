@@ -159,11 +159,7 @@ def get_checkpoint_to_resume(checkpoints_dir: str, fold: int) -> Optional[str]:
 
 
 def train_model(
-    args: Namespace,
-    fold: int = -1,
-    items: Optional[List] = None,
-    classes: Optional[List] = None,
-    images: Optional[np.ctypeslib.array] = None,
+    args: Namespace, fold: int = -1, items: Optional[List] = None, classes: Optional[List] = None
 ) -> Optional[pl.Trainer]:
 
     # Set up seed
@@ -173,7 +169,7 @@ def train_model(
     args.fold = fold
 
     # Create and setup data
-    data = XRayClassificationDataModule(args, items=items, classes=classes, images=images)
+    data = XRayClassificationDataModule(args, items=items, classes=classes)
     data.setup()
 
     # Create model
@@ -306,9 +302,7 @@ def train_single_model(args: Namespace):
 
 def cross_validate(args: Namespace):
     # Load items only once
-    items, classes, images = XRayDataset.load_items(
-        labels_csv=args.labels_csv, images_dir=args.images_dir, num_workers=args.num_workers
-    )
+    items, classes = XRayDataset.load_items(labels_csv=args.labels_csv, images_dir=args.images_dir)
 
     # OOF probabilities placeholder
     oof_folds = -1 * np.ones(len(items))
@@ -316,11 +310,12 @@ def cross_validate(args: Namespace):
     oof_probabilities = -1 * torch.ones((len(items), 11), device='cpu', dtype=torch.float32)
 
     # Folds loop
-    for fold in range(args.cv_folds):
+    folds = sorted({item['fold'] for item in items})
+    for fold in folds:
         print(f'FOLD {fold}')
 
         # Train fold model
-        fold_trainer = train_model(args, fold=fold, items=items, classes=classes, images=images)
+        fold_trainer = train_model(args, fold=fold, items=items, classes=classes)
         if fold_trainer is not None:  # global_rank == 0
             model = fold_trainer.model
             if hasattr(model, 'module'):  # DP, DDP
@@ -355,7 +350,7 @@ def main(args: Namespace):
     create_dirs(args)
 
     # Train single model
-    if args.cv_folds is None:
+    if args.val_type == 'single':
         train_single_model(args)
 
     # Train fold models
