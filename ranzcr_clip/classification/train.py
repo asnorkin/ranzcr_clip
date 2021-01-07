@@ -277,7 +277,7 @@ def train_single_model(args: Namespace):
     SINGLE_TRAIN_FOLD = 0
 
     # Train model
-    trainer = train_model(args)
+    trainer = train_model(args, fold=SINGLE_TRAIN_FOLD)
     if trainer is None:  # global_rank != 0
         return
 
