@@ -274,7 +274,7 @@ def report(probabilities: torch.Tensor, labels: torch.Tensor, checkpoints_dir: O
 
 def train_single_model(args: Namespace):
     TOTAL_FOLDS = 5
-    SINGLE_TRAIN_FOLD = 0
+    SINGLE_TRAIN_FOLD = 4
 
     # Train model
     trainer = train_model(args, fold=SINGLE_TRAIN_FOLD)
