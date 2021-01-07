@@ -2,7 +2,7 @@ WORK_DIR=classification
 LR=1e-3
 EPOCHS=30
 BATCH_SIZE=48
-NUM_WORKERS=16
+NUM_WORKERS=15
 PRECISION=16
 VAL_SIZE=0.2
 
@@ -26,6 +26,5 @@ nohup python classification/train.py \
     --val_size=${VAL_SIZE} \
     --accelerator=ddp \
     --precision=${PRECISION} \
-    --cache_images \
     --use_tta \
     &> ${EXPERIMENT}.log 2>&1 &

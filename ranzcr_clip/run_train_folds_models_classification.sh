@@ -1,8 +1,8 @@
 WORK_DIR=classification
 LR=1e-3
-EPOCHS=20
+EPOCHS=30
 BATCH_SIZE=48
-NUM_WORKERS=32
+NUM_WORKERS=15
 NUM_FOLDS=5
 PRECISION=16
 
@@ -26,6 +26,5 @@ nohup python classification/train.py \
     --cv_folds=${NUM_FOLDS} \
     --accelerator=ddp \
     --precision=${PRECISION} \
-    --cache_images \
     --use_tta \
     &> ${EXPERIMENT}.log 2>&1 &
