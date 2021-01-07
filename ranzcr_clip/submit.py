@@ -50,9 +50,7 @@ def create_batch_generator(args: Namespace, model_config: ModelConfig) -> DataLo
     transform = A.Compose(
         [
             A.Resize(height=model_config.input_height, width=model_config.input_width, always_apply=True),
-            A.FromFloat('uint8', always_apply=True),
             A.CLAHE(always_apply=True),
-            # A.Normalize(mean=0.449, std=0.226, always_apply=True),    # ImageNet
             A.Normalize(mean=0.482, std=0.220, always_apply=True),  # Ranzcr
             ToTensorV2(always_apply=True),
         ]

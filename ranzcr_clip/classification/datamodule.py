@@ -57,9 +57,7 @@ class XRayClassificationDataModule(pl.LightningDataModule):
 
         post_transforms = [
             A.Resize(height=self.config.input_height, width=self.config.input_width),
-            A.FromFloat('uint8', always_apply=True),
             A.CLAHE(always_apply=True),
-            # A.Normalize(mean=0.449, std=0.226, always_apply=True),    # ImageNet
             A.Normalize(mean=0.482, std=0.220, always_apply=True),  # Ranzcr
             ToTensorV2(always_apply=True),
         ]
