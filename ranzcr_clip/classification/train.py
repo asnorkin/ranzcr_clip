@@ -59,6 +59,7 @@ def config_args() -> Namespace:
         args.max_epochs = args.num_epochs
 
     if args.seed is not None:
+        args.benchmark = False
         args.deterministic = True
 
     return args
