@@ -29,7 +29,7 @@ nohup python classification/train.py \
     --lr=${LR} \
     --gpus=${GPUS} \
     --num_epochs=${EPOCHS} \
-    --val_size=${VAL_SIZE} \
+    --val_type=single \
     --accelerator=ddp \
     --precision=${PRECISION} \
     --use_tta \
