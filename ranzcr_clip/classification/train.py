@@ -330,7 +330,8 @@ def cross_validate(args: Namespace):
             oof_folds[fold_oof_indices] = fold
             oof_labels[fold_oof_indices] = fold_oof_labels
             oof_probabilities[fold_oof_indices] = fold_oof_probabilities
-        elif fold + 1 == args.cv_folds:  # global_rank != 0 in case end of folds loop return
+
+        elif fold == max(folds):  # global_rank != 0 in case end of folds loop return
             return
 
     # Verbose
