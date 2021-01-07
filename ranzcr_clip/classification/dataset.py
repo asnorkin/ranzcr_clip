@@ -84,7 +84,7 @@ class XRayDataset(ImageItemsDataset):
 
         # Load items
         items, not_found = [], 0
-        for _, row in tqdm(labels_df.iterrows(), desc='Loading items', unit='item'):
+        for _, row in tqdm(labels_df.iterrows(), desc='Loading items', unit='item', total=len(labels_df)):
             image_file = osp.join(images_dir, f'{row.StudyInstanceUID}.jpg')
             if not osp.exists(image_file):
                 not_found += 1
