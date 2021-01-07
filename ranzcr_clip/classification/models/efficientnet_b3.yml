@@ -6,7 +6,7 @@ input_height: 512
 input_width: 512
 
 # Network params
-width_coefficient: 1.0
+width_coefficient: 1.2
 
 # Dropout
 dropout_rate: 0.6
