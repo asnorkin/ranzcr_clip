@@ -13,8 +13,6 @@ from classification.modelzoo import ModelConfig
 
 
 class XRayClassificationDataModule(pl.LightningDataModule):
-    SINGLE_TRAIN_FOLD = 0
-
     def __init__(self, hparams: Namespace, items: Optional[list] = None, classes: Optional[list] = None):
         super().__init__()
 
@@ -42,7 +40,7 @@ class XRayClassificationDataModule(pl.LightningDataModule):
             )
 
         # Set up fold and split items for this fold
-        fold = self.hparams.fold if self.hparams.val_type == 'folds' else self.SINGLE_TRAIN_FOLD
+        fold = self.hparams.fold
         train_indices = [i for i, item in enumerate(self.items) if item['fold'] != fold]
         val_indices = [i for i, item in enumerate(self.items) if item['fold'] == fold]
 

@@ -273,6 +273,9 @@ def report(probabilities: torch.Tensor, labels: torch.Tensor, checkpoints_dir: O
 
 
 def train_single_model(args: Namespace):
+    TOTAL_FOLDS = 5
+    SINGLE_TRAIN_FOLD = 0
+
     # Train model
     trainer = train_model(args)
     if trainer is None:  # global_rank != 0
@@ -291,10 +294,15 @@ def train_single_model(args: Namespace):
     # Verbose
     oof_roc_auc = report(probabilities=val_probabilities, labels=val_labels, checkpoints_dir=args.checkpoints_dir)
 
+    # Create folds_auc
+    folds_auc = -1 * np.ones(TOTAL_FOLDS)
+    folds_auc[SINGLE_TRAIN_FOLD] = oof_roc_auc
+
     # Save val probabilities
     np.save(osp.join(args.checkpoints_dir, 'val_indices.npy'), val_indices.cpu().numpy())
     np.save(osp.join(args.checkpoints_dir, 'val_labels.npy'), val_labels.cpu().numpy())
     np.save(osp.join(args.checkpoints_dir, 'val_probabilities.npy'), val_probabilities.cpu().numpy())
+    np.save(osp.join(args.checkpoints_dir, 'single_auc.npy'), folds_auc)
 
     # Save checkpoints
     archive_checkpoints(args, oof_roc_auc, folds=False)
@@ -304,13 +312,16 @@ def cross_validate(args: Namespace):
     # Load items only once
     items, classes = XRayDataset.load_items(labels_csv=args.labels_csv, images_dir=args.images_dir)
 
-    # OOF probabilities placeholder
+    # Folds
+    folds = sorted({item['fold'] for item in items})
+
+    # OOF placeholders
     oof_folds = -1 * np.ones(len(items))
     oof_labels = -1 * torch.ones((len(items), 11), device='cpu', dtype=torch.float32)
     oof_probabilities = -1 * torch.ones((len(items), 11), device='cpu', dtype=torch.float32)
+    folds_auc = -1 * np.ones(len(folds))
 
     # Folds loop
-    folds = sorted({item['fold'] for item in items})
     for fold in folds:
         print(f'FOLD {fold}')
 
@@ -330,6 +341,7 @@ def cross_validate(args: Namespace):
             oof_folds[fold_oof_indices] = fold
             oof_labels[fold_oof_indices] = fold_oof_labels
             oof_probabilities[fold_oof_indices] = fold_oof_probabilities
+            folds_auc[fold] = batch_auc_roc(fold_oof_labels, fold_oof_probabilities).item()
 
         elif fold == max(folds):  # global_rank != 0 in case end of folds loop return
             return
@@ -341,6 +353,7 @@ def cross_validate(args: Namespace):
     np.save(osp.join(args.checkpoints_dir, 'oof_folds.npy'), oof_folds)
     np.save(osp.join(args.checkpoints_dir, 'oof_labels.npy'), oof_labels.cpu().numpy())
     np.save(osp.join(args.checkpoints_dir, 'oof_probabilities.npy'), oof_probabilities.cpu().numpy())
+    np.save(osp.join(args.checkpoints_dir, 'folds_auc.npy'), folds_auc)
 
     # Save checkpoints
     archive_checkpoints(args, oof_roc_auc, folds=True)
