@@ -59,33 +59,33 @@ class XRayClassificationModule(pl.LightningModule):
 
         return losses, metrics
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch: dict, batch_idx: int) -> dict:
         return self._step(batch, batch_idx, stage='train')
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch: dict, batch_idx: int) -> dict:
         return self._step(batch, batch_idx, stage='val')
 
-    def test_step(self, batch, batch_idx):
+    def test_step(self, batch: dict, batch_idx: int) -> dict:
         return self._step(batch, batch_idx, stage='test')
 
     def on_validation_epoch_start(self):
         self._on_epoch_start()
 
-    def validation_epoch_end(self, outputs):
-        self._epoch_end(outputs, stage='val')
-
-    def on_test_epoch_start(self):
+    def on_test_epoch_start(self) -> None:
         self._on_epoch_start()
 
-    def test_epoch_end(self, outputs):
+    def validation_epoch_end(self, outputs: list) -> None:
+        self._epoch_end(outputs, stage='val')
+
+    def test_epoch_end(self, outputs: list) -> None:
         self._epoch_end(outputs, stage='test')
 
-    def setup(self, _stage: Optional[str] = None):
+    def setup(self, _stage: Optional[str] = None) -> None:
         # Calculate loss weights
         weights = self.criterion.calculate_weights(self.trainer.datamodule.train_dataset.targets)
         self.criterion.weights = weights.to(self.device).to(self.dtype)
 
-    def _on_epoch_start(self):
+    def _on_epoch_start(self) -> None:
         self.test_indices = []
         self.test_labels = []
         self.test_probabilities = []
@@ -118,7 +118,7 @@ class XRayClassificationModule(pl.LightningModule):
         self.test_labels = labels
         self.test_probabilities = probabilities
 
-    def _step(self, batch: dict, _batch_idx: int, stage: str) -> Optional[dict]:
+    def _step(self, batch: dict, _batch_idx: int, stage: str) -> dict:
         logits = self.forward(batch['image'])
         losses, metrics = self.loss(logits, batch)
 
