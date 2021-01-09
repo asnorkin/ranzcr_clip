@@ -48,11 +48,44 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         pre_transforms = []
 
         augmentations = [
-            A.RandomResizedCrop(height=self.config.input_height, width=self.config.input_width, scale=(0.85, 1.0)),
-            A.HorizontalFlip(),
-            A.RandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.1),
-            A.Rotate(limit=3),
-            A.CoarseDropout(),
+            A.RandomResizedCrop(height=self.config.input_height, width=self.config.input_width, scale=(0.9, 1), p=1),
+            A.HorizontalFlip(p=0.5),
+            A.ShiftScaleRotate(p=0.5),
+            A.HueSaturationValue(hue_shift_limit=10, sat_shift_limit=10, val_shift_limit=10, p=0.7),
+            A.RandomBrightnessContrast(brightness_limit=(-0.2, 0.2), contrast_limit=(-0.2, 0.2), p=0.7),
+            A.CLAHE(clip_limit=(1, 4), p=0.5),
+            A.OneOf(
+                [
+                    A.OpticalDistortion(distort_limit=1.0),
+                    A.GridDistortion(num_steps=5, distort_limit=1.0),
+                    A.ElasticTransform(alpha=3),
+                ],
+                p=0.2,
+            ),
+            A.OneOf(
+                [
+                    A.GaussNoise(var_limit=(10.0, 50.0)),
+                    A.GaussianBlur(),
+                    A.MotionBlur(),
+                    A.MedianBlur(),
+                ],
+                p=0.2,
+            ),
+            A.OneOf(
+                [
+                    A.ImageCompression(),
+                    A.Downscale(scale_min=0.1, scale_max=0.15),
+                ],
+                p=0.2,
+            ),
+            A.IAAPiecewiseAffine(p=0.2),
+            A.IAASharpen(p=0.2),
+            A.CoarseDropout(
+                max_height=int(self.config.input_height * 0.1),
+                max_width=int(self.config.input_width * 0.1),
+                max_holes=5,
+                p=0.5,
+            ),
         ]
 
         post_transforms = [
