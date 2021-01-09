@@ -82,7 +82,7 @@ class XRayClassificationModule(pl.LightningModule):
         self._epoch_end(outputs, stage='test')
 
     def setup(self, _stage: Optional[str] = None, targets: Optional[list] = None) -> None:
-        if targets is not None:
+        if targets is not None and self.hparams.bce_weights:
             # Calculate loss weights
             weights = self.criterion.calculate_weights(targets)
             self.criterion.weights = weights.to(self.device).to(self.dtype)
@@ -213,6 +213,7 @@ class XRayClassificationModule(pl.LightningModule):
 
         # Loss
         parser.add_argument('--smoothing_epsilon', type=float, default=0.0)
+        parser.add_argument('--bce_weights', action='store_true')
 
         # Optimizer and scheduler
         parser.add_argument('--weight_decay', type=float, default=1e-6)
