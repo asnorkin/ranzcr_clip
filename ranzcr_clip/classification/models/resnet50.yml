@@ -1,4 +1,5 @@
 model_name: resnet50
+pretrained: True
 
 input_height: 512
 input_width: 512

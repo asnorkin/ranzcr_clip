@@ -13,8 +13,8 @@ class ModelConfig:
         return self.params.get(item, None)
 
 
-def resnext50_32x4d(config: ModelConfig, pretrained: bool = True) -> nn.Module:
-    params = {'pretrained': pretrained}
+def resnext50_32x4d(config: ModelConfig) -> nn.Module:
+    params = {'pretrained': config.pretrained}
 
     # Load original model
     model = models.resnext50_32x4d(**params)
@@ -26,8 +26,8 @@ def resnext50_32x4d(config: ModelConfig, pretrained: bool = True) -> nn.Module:
     return model
 
 
-def resnet50(config: ModelConfig, pretrained: bool = True) -> nn.Module:
-    params = {'pretrained': pretrained}
+def resnet50(config: ModelConfig) -> nn.Module:
+    params = {'pretrained': config.pretrained}
 
     # Load original model
     model = models.resnet50(**params)
@@ -39,7 +39,7 @@ def resnet50(config: ModelConfig, pretrained: bool = True) -> nn.Module:
     return model
 
 
-def efficientnet(config: ModelConfig, pretrained: bool = True) -> nn.Module:
+def efficientnet(config: ModelConfig) -> nn.Module:
     params = {
         'model_name': config.model_name.replace('_', '-'),
         'in_channels': 1,
@@ -49,7 +49,7 @@ def efficientnet(config: ModelConfig, pretrained: bool = True) -> nn.Module:
         'width_coefficient': config.width_coefficient,
     }
 
-    if pretrained:
+    if config.pretrained:
         model = EfficientNet.from_pretrained(**params)
     else:
         model = EfficientNet.from_name(**params)

@@ -248,7 +248,10 @@ class XRayClassificationModule(pl.LightningModule):
         if model_builder is None:
             raise ValueError(f'Unexpected model name: {config.model_name}')
 
-        model = model_builder(config, pretrained=checkpoint_file is None)
+        if checkpoint_file is not None:
+            config.pretrained = False
+
+        model = model_builder(config)
 
         if checkpoint_file is not None:
             ckpt = torch.load(checkpoint_file, map_location='cpu')

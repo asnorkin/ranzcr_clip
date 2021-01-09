@@ -1,4 +1,5 @@
 model_name: resnext50_32x4d
+pretrained: True
 
 input_height: 512
 input_width: 512

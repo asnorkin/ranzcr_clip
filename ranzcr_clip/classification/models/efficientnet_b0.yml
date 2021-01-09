@@ -1,5 +1,6 @@
 model_name: efficientnet_b0
 num_classes: 11
+pretrained: True
 
 # Input size
 input_height: 512
