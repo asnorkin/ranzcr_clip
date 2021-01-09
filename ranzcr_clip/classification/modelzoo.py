@@ -40,9 +40,6 @@ def resnet50(config: ModelConfig, pretrained: bool = True) -> nn.Module:
 
 
 def efficientnet(config: ModelConfig, pretrained: bool = True) -> nn.Module:
-    if getattr(config, 'width_coefficient', 1.0) != 1.0:
-        pretrained = False
-
     params = {
         'model_name': config.model_name.replace('_', '-'),
         'in_channels': 1,
