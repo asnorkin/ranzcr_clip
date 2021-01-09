@@ -1,0 +1,17 @@
+model_name: efficientnet_b6
+num_classes: 11
+pretrained: True
+
+# Input size
+input_height: 512
+input_width: 512
+
+# Network params
+width_coefficient: 1.8
+
+# Dropout
+dropout_rate: 0.65
+drop_connect_rate: 0.65
+
+# Confidence
+confidence_threshold: 0.5
