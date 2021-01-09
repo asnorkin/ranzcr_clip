@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 from pytorch_lightning.metrics.functional.classification import auroc
@@ -108,12 +108,15 @@ class BCEWithLogitsLoss(nn.Module):
         return bce
 
     @staticmethod
-    def calculate_weights(targets: list, lo: float = 0.5, hi: float = 2.0) -> torch.Tensor:
+    def calculate_weights(targets: list, alpha: Union[float, str] = 100.0) -> torch.Tensor:
         targets = torch.from_numpy(np.stack(targets))
         positive_frac = targets.sum(dim=0) / targets.shape[0]
         negative_frac = 1.0 - positive_frac
         weights = negative_frac / positive_frac
         weights[torch.isinf(weights) | torch.isnan(weights)] = 1.0
-        weights = torch.sqrt(weights)
-        weights = torch.clamp(weights, min=lo, max=hi)
+
+        if alpha == 'mean':
+            alpha = weights.mean()
+
+        weights = torch.log(alpha + weights) / torch.log(alpha + weights.mean())
         return weights
