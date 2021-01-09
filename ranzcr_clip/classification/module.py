@@ -37,6 +37,7 @@ class XRayClassificationModule(pl.LightningModule):
         self.test_indices = None
         self.test_labels = None
         self.test_probabilities = None
+        self.test_roc_auc = None
 
     def forward(self, images: torch.Tensor) -> torch.Tensor:
         return self.model(images)
@@ -80,10 +81,11 @@ class XRayClassificationModule(pl.LightningModule):
     def test_epoch_end(self, outputs: list) -> None:
         self._epoch_end(outputs, stage='test')
 
-    def setup(self, _stage: Optional[str] = None) -> None:
-        # Calculate loss weights
-        weights = self.criterion.calculate_weights(self.trainer.datamodule.train_dataset.targets)
-        self.criterion.weights = weights.to(self.device).to(self.dtype)
+    def setup(self, _stage: Optional[str] = None, targets: Optional[list] = None) -> None:
+        if targets is not None:
+            # Calculate loss weights
+            weights = self.criterion.calculate_weights(targets)
+            self.criterion.weights = weights.to(self.device).to(self.dtype)
 
     def _on_epoch_start(self) -> None:
         self.test_indices = []
@@ -117,6 +119,7 @@ class XRayClassificationModule(pl.LightningModule):
         self.test_indices = _gather('indices')
         self.test_labels = labels
         self.test_probabilities = probabilities
+        self.test_roc_auc = roc_auc
 
     def _step(self, batch: dict, _batch_idx: int, stage: str) -> dict:
         logits = self.forward(batch['image'])

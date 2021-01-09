@@ -13,9 +13,11 @@ from prettytable import PrettyTable
 from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import TensorBoardLogger
 from sklearn.metrics import classification_report
+from torch import distributed as dist
 
 from classification.datamodule import XRayClassificationDataModule
 from classification.dataset import XRayDataset
+from classification.experiment import Experiment
 from classification.loss import batch_auc_roc, reduce_auc_roc
 from classification.module import XRayClassificationModule
 from submit import TARGET_NAMES
@@ -30,6 +32,8 @@ def add_program_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument('--project', type=str, default='efficientnet_b0')
     parser.add_argument('--experiment', type=str, default='train')
     parser.add_argument('--monitor_mode', type=str, default='min')
+    parser.add_argument('--exist_checkpoint', type=str, default='test', choices=['resume', 'test', 'remove'])
+    parser.add_argument('--folds', type=str, default='4')
 
     # Paths
     parser.add_argument('--work_dir', type=str, default='classification')
@@ -61,6 +65,9 @@ def config_args() -> Namespace:
     if args.seed is not None:
         args.benchmark = False
         args.deterministic = True
+
+    if args.folds is not None:
+        args.folds = list(map(int, args.folds.split(',')))
 
     return args
 
@@ -105,30 +112,18 @@ def lr_monitor_callback() -> LearningRateMonitor:
     return LearningRateMonitor(log_momentum=False)
 
 
-def archive_checkpoints(args: Namespace, oof_roc_auc: float, folds: bool):
+def archive_checkpoints(args: Namespace, oof_roc_auc: float, folds: list):
     print('Archive checkpoints..')
 
     # Archive file
-    archive_name = f'{args.experiment}_auc{oof_roc_auc:.3f}'
+    archive_name = f'{args.experiment}_f{"".join(map(str, folds))}_auc{oof_roc_auc:.3f}'
     archive_file = osp.join(args.archives_dir, archive_name + '.zip')
 
     # Create archived checkpoints dir
     create_if_not_exist(osp.dirname(archive_file))
 
     # Get checkpoints files
-    checkpoints_files = []
-    for fname in os.listdir(args.checkpoints_dir):
-        if folds:
-            if fname.startswith('single'):
-                print(f'[WARNING] folds is set and found a one model file: {fname}')
-            if fname.startswith('fold'):
-                checkpoints_files.append(fname)
-
-        else:
-            if fname.startswith('fold'):
-                print(f'[WARNING] folds is not set and found fold file: {fname}')
-            if fname.startswith('single'):
-                checkpoints_files.append(fname)
+    checkpoints_files = [fname for fname in os.listdir(args.checkpoints_dir) if fname.startswith('fold')]
 
     # Archive
     with zipfile.ZipFile(archive_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -140,10 +135,9 @@ def archive_checkpoints(args: Namespace, oof_roc_auc: float, folds: bool):
     print('Checkpoints successfully archived!')
 
 
-def get_checkpoint_to_resume(checkpoints_dir: str, fold: int) -> Optional[str]:
-    prefix = f'fold{fold}' if fold >= 0 else 'single'
+def get_checkpoint(checkpoints_dir: str, fold: int) -> Optional[str]:
     checkpoint_files = [
-        osp.join(checkpoints_dir, fname) for fname in os.listdir(checkpoints_dir) if fname.startswith(prefix)
+        osp.join(checkpoints_dir, fname) for fname in os.listdir(checkpoints_dir) if fname.startswith(f'fold{fold}-')
     ]
 
     if len(checkpoint_files) > 1:
@@ -152,76 +146,29 @@ def get_checkpoint_to_resume(checkpoints_dir: str, fold: int) -> Optional[str]:
 
     if len(checkpoint_files) > 0:
         checkpoint_file = checkpoint_files[0]
-        print(f'Resume training from checkpoint: {checkpoint_file}')
+        print(f'Found fold{fold} checkpoint: {checkpoint_file}')
         return checkpoint_file
 
     return None
 
 
-def train_model(
-    args: Namespace, fold: int = -1, items: Optional[List] = None, classes: Optional[List] = None
-) -> Optional[pl.Trainer]:
+def report(probabilities: np.ndarray, labels: np.ndarray, checkpoints_dir: Optional[str] = None) -> float:
+    # Use only calculated already values
+    probabilities = probabilities[~np.all(probabilities == -1, axis=1)]
+    labels = labels[~np.all(labels == -1, axis=1)]
 
-    # Set up seed
-    pl.seed_everything(seed=args.seed + fold)
-
-    # Set up fold
-    args.fold = fold
-
-    # Create and setup data
-    data = XRayClassificationDataModule(args, items=items, classes=classes)
-    data.setup()
-
-    # Create model
-    model = XRayClassificationModule(args)
-
-    # Create logger
-    logger = tensorboard_logger(args, fold=fold)
-
-    # Create callbacks
-    callbacks = []
-    ckpt_callback = checkpoint_callback(args, fold=fold)
-    callbacks.append(ckpt_callback)
-    callbacks.append(lr_monitor_callback())
-
-    if args.scheduler == 'reducelronplateau':
-        callbacks.append(early_stopping_callback(args))
-
-    # Checkpoint to resume from if needed
-    if args.resume:
-        args.resume_from_checkpoint = get_checkpoint_to_resume(args.checkpoints_dir, fold)
-
-    # Create trainer
-    trainer = pl.Trainer.from_argparse_args(args, callbacks=callbacks, logger=logger)
-
-    # Fit
-    trainer.fit(model, datamodule=data)
-
-    # Load best weights for test
-    model.load_state_dict(torch.load(ckpt_callback.best_model_path)['state_dict'])
-
-    # Calculate OOF predictions
-    trainer.test(model, test_dataloaders=data.val_dataloader())
-
-    if trainer.global_rank != 0:
-        return None
-
-    return trainer
-
-
-def report(probabilities: torch.Tensor, labels: torch.Tensor, checkpoints_dir: Optional[str] = None) -> float:
     # OOF ROC AUC
-    oof_roc_auc_values = batch_auc_roc(targets=labels, probabilities=probabilities, reduction=None)
+    oof_roc_auc_values = batch_auc_roc(
+        targets=torch.from_numpy(labels), probabilities=torch.from_numpy(probabilities), reduction=None
+    )
     oof_roc_auc = reduce_auc_roc(oof_roc_auc_values, reduction='mean').item()
     print(f'OOF ROC AUC: {oof_roc_auc:.3f}')
 
-    num_targets = labels.sum(dim=0).long()
+    num_targets = labels.sum(axis=0).astype(int)
 
     # Create sklearn classification report
-    predictions = torch.where(probabilities > 0.5, 1, 0)
-    _report = classification_report(
-        predictions.cpu().numpy(), labels.cpu().numpy(), target_names=TARGET_NAMES, output_dict=True
-    )
+    predictions = np.where(probabilities > 0.5, 1, 0)
+    _report = classification_report(predictions, labels, target_names=TARGET_NAMES, output_dict=True)
 
     # Add ROC AUC to the report
     for i, target in enumerate(TARGET_NAMES):
@@ -244,7 +191,7 @@ def report(probabilities: torch.Tensor, labels: torch.Tensor, checkpoints_dir: O
 
     # Add macro average
     def _macro(key: str):
-        return np.mean([_report[target][key] for target in TARGET_NAMES])
+        return np.mean([_report[target_name][key] for target_name in TARGET_NAMES])
 
     rows.append(
         [
@@ -272,104 +219,110 @@ def report(probabilities: torch.Tensor, labels: torch.Tensor, checkpoints_dir: O
     return oof_roc_auc
 
 
-def train_single_model(args: Namespace):
-    TOTAL_FOLDS = 5
-    SINGLE_TRAIN_FOLD = 4
+def train_fold(
+    args: Namespace, fold: int = -1, items: Optional[List] = None, classes: Optional[List] = None
+) -> Optional[pl.Trainer]:
+    # Set up seed
+    pl.seed_everything(seed=args.seed + fold)
 
-    # Train model
-    trainer = train_model(args, fold=SINGLE_TRAIN_FOLD)
-    if trainer is None:  # global_rank != 0
-        return
+    # Set up fold
+    args.fold = fold
 
-    # Get model
-    model = trainer.model
-    if hasattr(model, 'module'):  # DP, DDP
-        model = model.module
+    # Create and setup data
+    data = XRayClassificationDataModule(args, items=items, classes=classes)
+    data.setup()
 
-    # Get val results
-    val_indices = model.test_indices
-    val_labels = model.test_labels
-    val_probabilities = model.test_probabilities
+    # Create model
+    model = XRayClassificationModule(args)
+    model.setup(targets=data.train_dataset.targets)
 
-    # Verbose
-    oof_roc_auc = report(probabilities=val_probabilities, labels=val_labels, checkpoints_dir=args.checkpoints_dir)
+    # Create logger
+    logger = tensorboard_logger(args, fold=fold)
 
-    # Create folds_auc
-    folds_auc = -1 * np.ones(TOTAL_FOLDS)
-    folds_auc[SINGLE_TRAIN_FOLD] = oof_roc_auc
+    # Create callbacks
+    callbacks = []
+    ckpt_callback = checkpoint_callback(args, fold=fold)
+    callbacks.append(ckpt_callback)
+    callbacks.append(lr_monitor_callback())
 
-    # Save val probabilities
-    np.save(osp.join(args.checkpoints_dir, 'val_indices.npy'), val_indices.cpu().numpy())
-    np.save(osp.join(args.checkpoints_dir, 'val_labels.npy'), val_labels.cpu().numpy())
-    np.save(osp.join(args.checkpoints_dir, 'val_probabilities.npy'), val_probabilities.cpu().numpy())
-    np.save(osp.join(args.checkpoints_dir, 'single_auc.npy'), folds_auc)
+    if args.scheduler == 'reducelronplateau':
+        callbacks.append(early_stopping_callback(args))
 
-    # Save checkpoints
-    archive_checkpoints(args, oof_roc_auc, folds=False)
+    # Existing checkpoint
+    checkpoint_file = get_checkpoint(args.checkpoints_dir, fold)
+    if checkpoint_file is not None:
+        if args.exist_checkpoint == 'resume':
+            args.resume_from_checkpoint = checkpoint_file
+        elif args.exist_checkpoint == 'remove':
+            os.remove(checkpoint_file)
+
+    # Create trainer
+    trainer = pl.Trainer.from_argparse_args(args, callbacks=callbacks, logger=logger)
+
+    if checkpoint_file is not None and args.exist_checkpoint == 'test':
+        # Test only
+        test_model_path = checkpoint_file
+
+    else:
+        # Fit
+        trainer.fit(model, datamodule=data)
+        test_model_path = ckpt_callback.best_model_path
+
+    # Load best weights for test
+    model.load_state_dict(torch.load(test_model_path)['state_dict'])
+
+    # Calculate OOF predictions
+    trainer.test(model, test_dataloaders=data.val_dataloader())
+
+    if trainer.global_rank != 0:
+        return None
+
+    return trainer
 
 
-def cross_validate(args: Namespace):
+def train(args: Namespace):
+    NUM_FOLDS = 5
+
     # Load items only once
     items, classes = XRayDataset.load_items(labels_csv=args.labels_csv, images_dir=args.images_dir)
 
     # Folds
-    folds = sorted({item['fold'] for item in items})
+    folds = args.folds or sorted({item['fold'] for item in items})
 
     # OOF placeholders
-    oof_folds = -1 * np.ones(len(items))
-    oof_labels = -1 * torch.ones((len(items), 11), device='cpu', dtype=torch.float32)
-    oof_probabilities = -1 * torch.ones((len(items), 11), device='cpu', dtype=torch.float32)
-    folds_auc = -1 * np.ones(len(folds))
+    experiment = Experiment(args, num_items=len(items), num_classes=len(classes), num_folds=NUM_FOLDS)
 
     # Folds loop
     for fold in folds:
         print(f'FOLD {fold}')
 
         # Train fold model
-        fold_trainer = train_model(args, fold=fold, items=items, classes=classes)
-        if fold_trainer is not None:  # global_rank == 0
-            model = fold_trainer.model
-            if hasattr(model, 'module'):  # DP, DDP
-                model = model.module
+        fold_trainer = train_fold(args, fold=fold, items=items, classes=classes)
+        if fold_trainer is not None:
+            experiment.update_state(fold_trainer, fold)
 
-            fold_oof_indices = model.test_indices.cpu().numpy()
-            fold_oof_labels = model.test_labels.cpu().to(torch.float32)
-            fold_oof_probabilities = model.test_probabilities.cpu().to(torch.float32)
-
-            assert len(fold_oof_indices) == len(fold_oof_labels) == len(fold_oof_probabilities)
-
-            oof_folds[fold_oof_indices] = fold
-            oof_labels[fold_oof_indices] = fold_oof_labels
-            oof_probabilities[fold_oof_indices] = fold_oof_probabilities
-            folds_auc[fold] = batch_auc_roc(fold_oof_labels, fold_oof_probabilities).item()
-
-        elif fold == max(folds):  # global_rank != 0 in case end of folds loop return
-            return
+    # Save and verbose only in zero process for DDP
+    if dist.is_initialized() and dist.get_rank() != 0:
+        return
 
     # Verbose
-    oof_roc_auc = report(probabilities=oof_probabilities, labels=oof_labels, checkpoints_dir=args.checkpoints_dir)
+    oof_roc_auc = report(
+        probabilities=experiment.probabilities, labels=experiment.labels, checkpoints_dir=args.checkpoints_dir
+    )
 
-    # Save OOF probabilities
-    np.save(osp.join(args.checkpoints_dir, 'oof_folds.npy'), oof_folds)
-    np.save(osp.join(args.checkpoints_dir, 'oof_labels.npy'), oof_labels.cpu().numpy())
-    np.save(osp.join(args.checkpoints_dir, 'oof_probabilities.npy'), oof_probabilities.cpu().numpy())
-    np.save(osp.join(args.checkpoints_dir, 'folds_auc.npy'), folds_auc)
+    # Save state
+    experiment.save_state()
 
     # Save checkpoints
-    archive_checkpoints(args, oof_roc_auc, folds=True)
+    archive_checkpoints(args, oof_roc_auc, folds=folds)
 
 
 def main(args: Namespace):
     # Create checkpoints and logs dirs
     create_dirs(args)
 
-    # Train single model
-    if args.val_type == 'single':
-        train_single_model(args)
-
-    # Train fold models
-    else:
-        cross_validate(args)
+    # Train
+    train(args)
 
 
 if __name__ == '__main__':

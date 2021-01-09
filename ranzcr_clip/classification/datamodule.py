@@ -165,7 +165,5 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         parser.add_argument('--num_epochs', type=int, default=20)
         parser.add_argument('--num_workers', type=int, default=8)
         parser.add_argument('--batch_size', type=int, default=32)
-        parser.add_argument('--val_type', type=str, default='single', choices=['single', 'folds'])
-        parser.add_argument('--cache_images', action='store_true')
 
         return parser
