@@ -115,7 +115,7 @@ class BCEWithLogitsLoss(nn.Module):
         weights = negative_frac / positive_frac
         weights[torch.isinf(weights) | torch.isnan(weights)] = 1.0
 
-        if alpha == 'mean':
+        if alpha is None:
             alpha = weights.mean()
 
         weights = torch.log(alpha + weights) / torch.log(alpha + weights.mean())
