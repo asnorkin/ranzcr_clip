@@ -1,5 +1,6 @@
 import os
 import os.path as osp
+from typing import Optional
 
 import torch
 
@@ -34,11 +35,18 @@ class FoldPredictor(EnsemblePredictor):
         return torch.stack(batch_predictions).mean(dim=0)
 
     @classmethod
-    def create_from_checkpoints(cls, checkpoints_dir: str):
+    def create_from_checkpoints(cls, checkpoints_dir: str, folds: Optional[str] = None):
+        if folds is not None:
+            folds = set(map(int, folds))
+
         config = ModelConfig(osp.join(checkpoints_dir, 'config.yml'))
         predictors = []
         for fname in os.listdir(checkpoints_dir):
             if fname.startswith('fold'):
+                fold = int(fname[4:5])
+                if folds is not None and fold not in folds:
+                    continue
+
                 model = XRayClassificationModule.build_model(config, osp.join(checkpoints_dir, fname))
                 predictors.append(TorchModelPredictor(config=config, model=model))
 
