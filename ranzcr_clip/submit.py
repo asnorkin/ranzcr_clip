@@ -1,6 +1,5 @@
 import os.path as osp
 from argparse import ArgumentParser, Namespace
-from typing import Union
 
 import albumentations as A
 import numpy as np
@@ -12,7 +11,7 @@ from tqdm import tqdm
 
 from classification.dataset import InferenceXRayDataset
 from classification.modelzoo import ModelConfig
-from predictors import FoldPredictor, TorchModelPredictor
+from predictors import FoldPredictor
 
 
 TARGET_NAMES = [
@@ -38,8 +37,8 @@ def config_args() -> Namespace:
     ap.add_argument('--output_dir', type=str, default='.')
     ap.add_argument('--batch_size', type=int, default=16)
     ap.add_argument('--num_workers', type=int, default=8)
-    ap.add_argument('--predictor_type', type=str, default='fold', choices=['fold', 'single'])
     ap.add_argument('--tta', action='store_true')
+    ap.add_argument('--folds', type=str, default=None)
 
     args = ap.parse_args()
 
@@ -76,20 +75,9 @@ def save(predictions: np.ndarray, image_uids: list, output_dir: str) -> pd.DataF
     return predictions
 
 
-def create_predictor(args: Namespace) -> Union[FoldPredictor, TorchModelPredictor]:
-    if args.predictor_type == 'fold':
-        predictor = FoldPredictor.create_from_checkpoints(args.checkpoints_dir)
-    elif args.predictor_type == 'single':
-        predictor = TorchModelPredictor.create_from_checkpoints(args.checkpoints_dir)
-    else:
-        raise TypeError(f'Unexpected predictor type: {args.predictor_type}')
-
-    return predictor
-
-
 def main(args: Namespace):
     # Create batch generator and predictor
-    predictor = create_predictor(args)
+    predictor = FoldPredictor.create_from_checkpoints(args.checkpoints_dir, folds=args.folds)
     batch_generator = create_batch_generator(args, model_config=predictor.config)
 
     # Make predictions
