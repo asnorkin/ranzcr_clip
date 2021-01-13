@@ -21,6 +21,7 @@ class XRayClassificationDataModule(pl.LightningDataModule):
 
         # Batch size that can be changed
         self.batch_size = self.hparams.batch_size
+        self.input_size = self.config.input_height
 
         # Common placeholders
         self.items = items
@@ -48,7 +49,7 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         pre_transforms = []
 
         augmentations = [
-            A.RandomResizedCrop(height=self.config.input_height, width=self.config.input_width, scale=(0.9, 1), p=1),
+            A.RandomResizedCrop(height=self.input_size, width=self.input_size, scale=(0.9, 1), p=1),
             A.HorizontalFlip(p=0.5),
             A.ShiftScaleRotate(p=0.5),
             A.HueSaturationValue(hue_shift_limit=10, sat_shift_limit=10, val_shift_limit=10, p=0.7),
@@ -81,15 +82,15 @@ class XRayClassificationDataModule(pl.LightningDataModule):
             A.IAAPiecewiseAffine(p=0.2),
             A.IAASharpen(p=0.2),
             A.CoarseDropout(
-                max_height=int(self.config.input_height * 0.1),
-                max_width=int(self.config.input_width * 0.1),
+                max_height=int(self.input_size * 0.1),
+                max_width=int(self.input_size * 0.1),
                 max_holes=5,
                 p=0.5,
             ),
         ]
 
         post_transforms = [
-            A.Resize(height=self.config.input_height, width=self.config.input_width),
+            A.Resize(height=self.input_size, width=self.input_size),
             A.CLAHE(always_apply=True),
             A.Normalize(mean=0.482, std=0.220, always_apply=True),  # Ranzcr
             ToTensorV2(always_apply=True),
@@ -114,19 +115,23 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         )
 
     def setup_input_size(self, input_size: int) -> None:
-        current_input_size = self.train_dataset.transforms[0].height
+        current_input_size = self.train_dataset.transform[0].height
         current_batch_size = self.batch_size
-        new_batch_size = floor((input_size / current_input_size) ** 2 * current_batch_size)
+        new_batch_size = floor((current_input_size / input_size) ** 2 * current_batch_size)
         if new_batch_size < 1:
             print(f'Can\'t set new input size {input_size} because new batch size will be bad: {new_batch_size}')
             return
 
         self.batch_size = new_batch_size
+        self.input_size = input_size
 
-        self.train_dataset.transforms[0].height = input_size
-        self.train_dataset.transforms[0].width = input_size
-        self.val_dataset.transforms[0].height = input_size
-        self.val_dataset.transforms[0].width = input_size
+        self.train_dataset.transform[0].height = input_size
+        self.train_dataset.transform[0].width = input_size
+        self.val_dataset.transform[0].height = input_size
+        self.val_dataset.transform[0].width = input_size
+
+        self.trainer.reset_train_dataloader(self.trainer.model)
+        self.trainer.reset_val_dataloader(self.trainer.model)
 
         print(f'Successfully set up nwe input size {input_size} with new batch size {new_batch_size}')
 

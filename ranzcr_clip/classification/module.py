@@ -69,6 +69,9 @@ class XRayClassificationModule(pl.LightningModule):
     def test_step(self, batch: dict, batch_idx: int) -> dict:
         return self._step(batch, batch_idx, stage='test')
 
+    def on_train_epoch_start(self) -> None:
+        self._schedule_input_size()
+
     def on_validation_epoch_start(self):
         self._on_epoch_start()
 
@@ -189,6 +192,18 @@ class XRayClassificationModule(pl.LightningModule):
             raise ValueError(f'Unexpected scheduler type: {self.hparams.scheduler}')
 
         return scheduler
+
+    def _schedule_input_size(self):
+        min_input_size = 256
+        max_input_size = 512
+        step = 128
+
+        cur_input_size = self.trainer.datamodule.input_size
+        scheduler = self.trainer.lr_schedulers[0]['scheduler']
+        if self.current_epoch == 0:
+            self.trainer.datamodule.setup_input_size(min_input_size)
+        elif scheduler.num_bad_epochs > 0 and cur_input_size < max_input_size:
+            self.trainer.datamodule.setup_input_size(cur_input_size + step)
 
     @staticmethod
     def _get_progress_bar_and_logs(losses: dict, metrics: dict, stage: str) -> Tuple[dict, dict]:
