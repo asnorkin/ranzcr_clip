@@ -204,7 +204,7 @@ class XRayClassificationModule(pl.LightningModule):
                     factor=self.hparams.lr_factor,
                     patience=self.hparams.lr_patience,
                     mode=self.hparams.monitor_mode,
-                    threshold=5e-4,
+                    threshold=1e-4,
                     threshold_mode='abs',
                     verbose=True,
                 ),
@@ -276,8 +276,8 @@ class XRayClassificationModule(pl.LightningModule):
         parser.add_argument('--lr_final_div_factor', type=float, default=1000.0)
 
         # ReduceLROnPlateau
-        parser.add_argument('--lr_factor', type=float, default=0.1)
-        parser.add_argument('--lr_patience', type=int, default=2)
+        parser.add_argument('--lr_factor', type=float, default=0.5)
+        parser.add_argument('--lr_patience', type=int, default=0)
 
         # CosineAnnealingWarmRestart
         parser.add_argument('--t0', type=int, default=10)
@@ -288,7 +288,7 @@ class XRayClassificationModule(pl.LightningModule):
         parser.add_argument('--lr_warmup_epochs', type=int, default=1)
 
         # Early stopping
-        parser.add_argument('--es_patience', type=int, default=5)
+        parser.add_argument('--es_patience', type=int, default=3)
 
         # Other flags
         parser.add_argument('--use_tta', action='store_true')
