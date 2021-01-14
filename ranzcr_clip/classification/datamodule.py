@@ -54,7 +54,6 @@ class XRayClassificationDataModule(pl.LightningDataModule):
             A.ShiftScaleRotate(p=0.5),
             A.HueSaturationValue(hue_shift_limit=10, sat_shift_limit=10, val_shift_limit=10, p=0.7),
             A.RandomBrightnessContrast(brightness_limit=(-0.2, 0.2), contrast_limit=(-0.2, 0.2), p=0.7),
-            A.CLAHE(clip_limit=(1, 4), p=0.5),
             A.OneOf(
                 [
                     A.OpticalDistortion(distort_limit=1.0),
