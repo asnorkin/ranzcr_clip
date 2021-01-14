@@ -70,7 +70,8 @@ class XRayClassificationModule(pl.LightningModule):
         return self._step(batch, batch_idx, stage='test')
 
     def on_train_epoch_start(self) -> None:
-        self._schedule_input_size()
+        if self.hparams.schedule_input_size:
+            self._schedule_input_size()
 
     def on_validation_epoch_start(self):
         self._on_epoch_start()
@@ -251,11 +252,9 @@ class XRayClassificationModule(pl.LightningModule):
         # Early stopping
         parser.add_argument('--es_patience', type=int, default=5)
 
-        # TTA
+        # Other flags
         parser.add_argument('--use_tta', action='store_true')
-
-        # Resume
-        parser.add_argument('--resume', action='store_true')
+        parser.add_argument('--input_size_increase', action='store_true')
 
         return parser
 
