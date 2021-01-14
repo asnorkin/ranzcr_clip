@@ -129,8 +129,8 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         self.val_dataset.transform[0].height = input_size
         self.val_dataset.transform[0].width = input_size
 
-        self.trainer.reset_train_dataloader(self.trainer.model)
-        self.trainer.reset_val_dataloader(self.trainer.model)
+        self.trainer.reset_train_dataloader(self.trainer.get_model())
+        self.trainer.reset_val_dataloader(self.trainer.get_model())
 
         print(f'Successfully set up nwe input size {input_size} with new batch size {new_batch_size}')
 
