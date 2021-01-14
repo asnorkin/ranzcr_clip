@@ -33,7 +33,7 @@ def add_program_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
     parser.add_argument('--experiment', type=str, default='train')
     parser.add_argument('--monitor_mode', type=str, default='min')
     parser.add_argument('--exist_checkpoint', type=str, default='test', choices=['resume', 'test', 'remove'])
-    parser.add_argument('--folds', type=str, default='4')
+    parser.add_argument('--folds', type=str, default=None)
 
     # Paths
     parser.add_argument('--work_dir', type=str, default='classification')
