@@ -1,5 +1,5 @@
 from argparse import ArgumentParser, Namespace
-from math import ceil
+from math import ceil, sqrt
 from typing import Callable, Optional, Tuple, Union
 
 import pytorch_lightning as pl
@@ -276,7 +276,7 @@ class XRayClassificationModule(pl.LightningModule):
         parser.add_argument('--lr_final_div_factor', type=float, default=1000.0)
 
         # ReduceLROnPlateau
-        parser.add_argument('--lr_factor', type=float, default=0.5)
+        parser.add_argument('--lr_factor', type=float, default=sqrt(0.1))
         parser.add_argument('--lr_patience', type=int, default=0)
 
         # CosineAnnealingWarmRestart
