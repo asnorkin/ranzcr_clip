@@ -254,7 +254,7 @@ class XRayClassificationModule(pl.LightningModule):
 
         # Other flags
         parser.add_argument('--use_tta', action='store_true')
-        parser.add_argument('--input_size_increase', action='store_true')
+        parser.add_argument('--schedule_input_size', action='store_true')
 
         return parser
 
