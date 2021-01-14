@@ -61,13 +61,13 @@ class XRayClassificationModule(pl.LightningModule):
     def optimizer_step(
         self,
         epoch: int = None,
-        _batch_idx: int = None,
+        batch_idx: int = None,
         optimizer: Optimizer = None,
-        _optimizer_idx: int = None,
+        optimizer_idx: int = None,
         optimizer_closure: Optional[Callable] = None,
-        _on_tpu: bool = None,
-        _using_native_amp: bool = None,
-        _using_lbfgs: bool = None,
+        on_tpu: bool = None,
+        using_native_amp: bool = None,
+        using_lbfgs: bool = None,
     ) -> None:
         # warm up lr
         if epoch < self.hparams.lr_warmup_epochs:
@@ -79,8 +79,9 @@ class XRayClassificationModule(pl.LightningModule):
                 pg['lr'] = step_lr
 
         # update params
-        optimizer.step(closure=optimizer_closure)
-        optimizer.zero_grad()
+        super().optimizer_step(
+            epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu, using_native_amp, using_lbfgs
+        )
 
     def training_step(self, batch: dict, batch_idx: int) -> dict:
         return self._step(batch, batch_idx, stage='train')
