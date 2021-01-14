@@ -1,13 +1,13 @@
 from argparse import ArgumentParser, Namespace
 from math import ceil
-from typing import Optional, Tuple, Union
+from typing import Callable, Optional, Tuple, Union
 
 import pytorch_lightning as pl
 
 import torch
 from torch import distributed as dist
-from torch.optim import AdamW
-from torch.optim.lr_scheduler import OneCycleLR, ReduceLROnPlateau
+from torch.optim import AdamW, Optimizer
+from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, OneCycleLR, ReduceLROnPlateau
 
 from classification import modelzoo
 from classification.loss import batch_auc_roc, BCEWithLogitsLoss
@@ -44,9 +44,7 @@ class XRayClassificationModule(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = AdamW(self.model.parameters(), lr=self.hparams.lr, weight_decay=self.hparams.weight_decay)
-
         scheduler = self._configure_scheduler(optimizer)
-
         return [optimizer], [scheduler]
 
     def loss(self, logits: torch.Tensor, batch: dict) -> tuple:
@@ -59,6 +57,30 @@ class XRayClassificationModule(pl.LightningModule):
         # metrics['acc'] = (batch['target'] == predictions).float().mean()
 
         return losses, metrics
+
+    def optimizer_step(
+        self,
+        epoch: int = None,
+        _batch_idx: int = None,
+        optimizer: Optimizer = None,
+        _optimizer_idx: int = None,
+        optimizer_closure: Optional[Callable] = None,
+        _on_tpu: bool = None,
+        _using_native_amp: bool = None,
+        _using_lbfgs: bool = None,
+    ) -> None:
+        # warm up lr
+        if epoch < self.hparams.lr_warmup_epochs:
+            warmup_steps_per_epoch = self.trainer.num_training_batches // self.hparams.accumulate_grad_batches
+            warmup_steps = max(1, warmup_steps_per_epoch * self.hparams.lr_warmup_epochs)
+            lr_scale = min(1.0, float(self.trainer.global_step + 1) / warmup_steps)
+            step_lr = lr_scale * self.hparams.lr
+            for pg in optimizer.param_groups:
+                pg['lr'] = step_lr
+
+        # update params
+        optimizer.step(closure=optimizer_closure)
+        optimizer.zero_grad()
 
     def training_step(self, batch: dict, batch_idx: int) -> dict:
         return self._step(batch, batch_idx, stage='train')
@@ -189,6 +211,13 @@ class XRayClassificationModule(pl.LightningModule):
                 'interval': 'epoch',
                 'frequency': self.hparams.check_val_every_n_epoch,
             }
+        elif self.hparams.scheduler == '':
+            scheduler = CosineAnnealingWarmRestarts(
+                optimizer,
+                T_0=self.hparams.t0,
+                T_mult=self.hparams.tmult,
+                eta_min=self.hparams.eta_min,
+            )
         else:
             raise ValueError(f'Unexpected scheduler type: {self.hparams.scheduler}')
 
@@ -248,6 +277,14 @@ class XRayClassificationModule(pl.LightningModule):
         # ReduceLROnPlateau
         parser.add_argument('--lr_factor', type=float, default=0.1)
         parser.add_argument('--lr_patience', type=int, default=2)
+
+        # CosineAnnealingWarmRestart
+        parser.add_argument('--t0', type=int, default=10)
+        parser.add_argument('--tmult', type=int, default=1)
+        parser.add_argument('--eta_min', type=float, default=1e-6)
+
+        # Warmup
+        parser.add_argument('--lr_warmup_epochs', type=int, default=1)
 
         # Early stopping
         parser.add_argument('--es_patience', type=int, default=5)
