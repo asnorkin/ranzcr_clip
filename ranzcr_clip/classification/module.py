@@ -212,7 +212,7 @@ class XRayClassificationModule(pl.LightningModule):
                 'interval': 'epoch',
                 'frequency': self.hparams.check_val_every_n_epoch,
             }
-        elif self.hparams.scheduler == '':
+        elif self.hparams.scheduler == 'cosineannealingwarmrestarts':
             scheduler = CosineAnnealingWarmRestarts(
                 optimizer,
                 T_0=self.hparams.t0,
@@ -266,7 +266,10 @@ class XRayClassificationModule(pl.LightningModule):
         # Optimizer and scheduler
         parser.add_argument('--weight_decay', type=float, default=1e-6)
         parser.add_argument(
-            '--scheduler', type=str, default='reducelronplateau', choices=['reducelronplateau', 'onecyclelr']
+            '--scheduler',
+            type=str,
+            default='reducelronplateau',
+            choices=['cosineannealingwarmrestarts', 'onecyclelr', 'reducelronplateau'],
         )
 
         # OneCycleLR
