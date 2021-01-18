@@ -60,6 +60,9 @@ def config_args() -> Namespace:
         args.benchmark = False
         args.deterministic = True
 
+    if args.folds is not None:
+        args.folds = list(map(int, args.folds.split(',')))
+
     return args
 
 

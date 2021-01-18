@@ -1,12 +1,12 @@
 WORK_DIR=segmentation
 LR=1e-3
 EPOCHS=50
-BATCH_SIZE=16
+BATCH_SIZE=14
 ACC_BATCHES=2
-NUM_WORKERS=15
+NUM_WORKERS=0
 PRECISION=16
 
-PROJECT=efficientnet_b0
+PROJECT=unet64_512x512
 
 EXPERIMENT=${PROJECT}_${LR}lr${EPOCHS}e${BATCH_SIZE}x${ACC_BATCHES}b${PRECISION}p
 GPUS=0,1
@@ -20,7 +20,7 @@ fi
 # Add repo root to PYTHONPATH for imports
 export PYTHONPATH=.:${PYTHONPATH}
 
-nohup python classification/train.py \
+nohup python segmentation/train.py \
     --project=${PROJECT} \
     --work_dir=${WORK_DIR} \
     --experiment=${EXPERIMENT} \
