@@ -3,13 +3,11 @@ from math import sqrt
 from typing import Union
 
 import pytorch_lightning as pl
-import torch
-from torch import nn
 from torch.optim import AdamW, Optimizer, RMSprop
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from common.model_utils import ModelConfig
-from segmentation.loss import dice
+from segmentation.loss import SegmentationLoss
 from segmentation.modelzoo import unet
 
 
@@ -30,7 +28,11 @@ class LungSegmentationModule(pl.LightningModule):
         self.model = self._build_model()
 
         # Criterion
-        self.criterion = self._build_criterion()
+        self.criterion = SegmentationLoss(
+            n_classes=self.config.n_classes,
+            dice_weight=self.hparams.dice_weight,
+            dice_eps=self.hparams.dice_eps,
+        )
 
     def forward(self, inputs):
         return self.model.forward(inputs)
@@ -39,13 +41,6 @@ class LungSegmentationModule(pl.LightningModule):
         optimizer = self._configure_optimizer()
         scheduler = self._configure_scheduler(optimizer)
         return [optimizer], [scheduler]
-
-    def loss(self, logits: torch.Tensor, batch: dict) -> dict:
-        losses = dict()
-        losses['total'] = self.criterion(logits, batch['mask'])
-        losses['dice'] = dice(logits, batch['mask'])
-
-        return losses
 
     def training_step(self, batch: dict, batch_idx: int) -> dict:
         return self._step(batch, batch_idx, stage='train')
@@ -58,7 +53,7 @@ class LungSegmentationModule(pl.LightningModule):
 
     def _step(self, batch: dict, _batch_idx: int, stage: str) -> dict:
         logits = self.forward(batch['image'])[:, 0]
-        losses = self.loss(logits, batch)
+        losses = self.criterion(logits, batch['mask'])
 
         self.log('dice', losses['dice'], prog_bar=True, logger=True)
 
@@ -115,17 +110,13 @@ class LungSegmentationModule(pl.LightningModule):
     def _build_model(self):
         return unet(self.config)
 
-    def _build_criterion(self):
-        if self.config.n_classes == 1:
-            criterion = nn.BCEWithLogitsLoss()
-        else:
-            criterion = nn.CrossEntropyLoss()
-
-        return criterion
-
     @staticmethod
     def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
+
+        # Loss
+        parser.add_argument('--dice_eps', type=float, default=1e-3)
+        parser.add_argument('--dice_weight', type=float, default=1.0)
 
         # Optimizer
         parser.add_argument('--optimizer', type=str, choices=['rmsprop', 'adamw'], default='rmsprop')
