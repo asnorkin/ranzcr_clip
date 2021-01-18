@@ -1,7 +1,6 @@
 import os
 import os.path as osp
 import warnings
-import zipfile
 from argparse import ArgumentParser, Namespace
 from typing import List, Optional
 
@@ -10,8 +9,6 @@ import pandas as pd
 import pytorch_lightning as pl
 import torch
 from prettytable import PrettyTable
-from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.loggers import TensorBoardLogger
 from sklearn.metrics import classification_report
 from torch import distributed as dist
 
@@ -20,6 +17,17 @@ from classification.dataset import XRayDataset
 from classification.experiment import Experiment
 from classification.loss import batch_auc_roc, reduce_auc_roc
 from classification.module import XRayClassificationModule
+
+from common.fs_utils import create_dirs
+from common.pl_utils import (
+    archive_checkpoints,
+    checkpoint_callback,
+    early_stopping_callback,
+    get_checkpoint,
+    lr_monitor_callback,
+    tensorboard_logger,
+)
+
 from submit import TARGET_NAMES
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -70,86 +78,6 @@ def config_args() -> Namespace:
         args.folds = list(map(int, args.folds.split(',')))
 
     return args
-
-
-def create_if_not_exist(dirpath: str):
-    if not osp.exists(dirpath):
-        os.makedirs(dirpath)
-
-
-def create_dirs(args: Namespace):
-    create_if_not_exist(args.checkpoints_dir)
-    create_if_not_exist(args.log_dir)
-
-
-def checkpoint_callback(args: Namespace, fold: int = -1) -> ModelCheckpoint:
-    if not osp.exists(args.checkpoints_dir):
-        os.makedirs(args.checkpoints_dir)
-
-    filename = f'fold{fold}' if fold >= 0 else 'single'
-    filename += '-{epoch:02d}-{val_roc_auc:.3f}'
-
-    return ModelCheckpoint(
-        dirpath=args.checkpoints_dir,
-        filename=filename,
-        save_top_k=1,
-        save_last=False,
-        monitor='val_monitor',
-        mode=args.monitor_mode,
-    )
-
-
-def early_stopping_callback(args: Namespace) -> EarlyStopping:
-    return EarlyStopping(monitor='val_monitor', mode=args.monitor_mode, patience=args.es_patience, verbose=True)
-
-
-def tensorboard_logger(args: Namespace, fold: int = -1) -> TensorBoardLogger:
-    version = f'fold{fold}' if fold >= 0 else 'single'
-    return TensorBoardLogger(save_dir=args.log_dir, name=args.experiment, version=version, default_hp_metric=False)
-
-
-def lr_monitor_callback() -> LearningRateMonitor:
-    return LearningRateMonitor(log_momentum=False)
-
-
-def archive_checkpoints(args: Namespace, oof_roc_auc: float, folds: list):
-    print('Archive checkpoints..')
-
-    # Archive file
-    archive_name = f'{args.experiment}_f{"".join(map(str, folds))}_auc{oof_roc_auc:.3f}'
-    archive_file = osp.join(args.archives_dir, archive_name + '.zip')
-
-    # Create archived checkpoints dir
-    create_if_not_exist(osp.dirname(archive_file))
-
-    # Get checkpoints files
-    checkpoints_files = [fname for fname in os.listdir(args.checkpoints_dir) if fname.startswith('fold')]
-
-    # Archive
-    with zipfile.ZipFile(archive_file, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        zipf.write(args.config_file, arcname='config.yml')
-        for fname in checkpoints_files:
-            arcname = fname.replace('=', '')  # Remove kaggle illegal character '='
-            zipf.write(osp.join(args.checkpoints_dir, fname), arcname=arcname)
-
-    print('Checkpoints successfully archived!')
-
-
-def get_checkpoint(checkpoints_dir: str, fold: int) -> Optional[str]:
-    checkpoint_files = [
-        osp.join(checkpoints_dir, fname) for fname in os.listdir(checkpoints_dir) if fname.startswith(f'fold{fold}-')
-    ]
-
-    if len(checkpoint_files) > 1:
-        msg = '\n\t' + '\n\t'.join(checkpoint_files)
-        print(f'Found many checkpoint files:{msg}')
-
-    if len(checkpoint_files) > 0:
-        checkpoint_file = checkpoint_files[0]
-        print(f'Found fold{fold} checkpoint: {checkpoint_file}')
-        return checkpoint_file
-
-    return None
 
 
 def report(probabilities: np.ndarray, labels: np.ndarray, checkpoints_dir: Optional[str] = None) -> float:

@@ -1,16 +1,9 @@
-import yaml
+from efficientnet_pytorch import EfficientNet
+
 from torch import nn
 from torchvision import models
 
-from efficientnet_pytorch import EfficientNet
-
-
-class ModelConfig:
-    def __init__(self, config_file: str):
-        self.params = yaml.safe_load(open(config_file).read())
-
-    def __getattr__(self, item):
-        return self.params.get(item, None)
+from common.model_utils import ModelConfig
 
 
 def resnext50_32x4d(config: ModelConfig) -> nn.Module:

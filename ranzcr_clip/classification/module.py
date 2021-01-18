@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, OneCycleLR, Re
 
 from classification import modelzoo
 from classification.loss import batch_auc_roc, BCEWithLogitsLoss
-from classification.modelzoo import ModelConfig
+from common.model_utils import ModelConfig
 
 
 class XRayClassificationModule(pl.LightningModule):
