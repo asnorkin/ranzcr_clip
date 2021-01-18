@@ -1,0 +1,5 @@
+input_size: 512
+n_channels: 1
+n_classes: 1
+thickness: 64
+bilinear: True
