@@ -66,6 +66,7 @@ class LungSegmentationModule(pl.LightningModule):
                 prog_bar=True,
                 logger=True,
             )
+            self.log('val_monitor', -losses['dice'])
 
         return losses['total']
 
