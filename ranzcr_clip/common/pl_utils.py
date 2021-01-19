@@ -10,12 +10,14 @@ from pytorch_lightning.loggers import TensorBoardLogger
 from common.fs_utils import create_if_not_exist
 
 
-def checkpoint_callback(args: Namespace, fold: int = -1) -> ModelCheckpoint:
+def checkpoint_callback(args: Namespace, fold: int = -1, val_metric: str = None) -> ModelCheckpoint:
     if not osp.exists(args.checkpoints_dir):
         os.makedirs(args.checkpoints_dir)
 
     filename = f'fold{fold}' if fold >= 0 else 'single'
-    filename += '-{epoch:02d}-{val_roc_auc:.3f}'
+    filename += '-{epoch:02d}'
+    if val_metric is not None:
+        filename += '-{' + val_metric + ':.3f}'
 
     return ModelCheckpoint(
         dirpath=args.checkpoints_dir,

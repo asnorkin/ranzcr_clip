@@ -84,7 +84,7 @@ def train_fold(args: Namespace, fold: int = -1, items: Optional[List] = None) ->
 
     # Create callbacks
     callbacks = []
-    ckpt_callback = checkpoint_callback(args, fold=fold)
+    ckpt_callback = checkpoint_callback(args, fold=fold, val_metric='val_dice')
     callbacks.append(ckpt_callback)
     callbacks.append(lr_monitor_callback())
 

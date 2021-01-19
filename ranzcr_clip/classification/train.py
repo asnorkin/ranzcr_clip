@@ -169,7 +169,7 @@ def train_fold(
 
     # Create callbacks
     callbacks = []
-    ckpt_callback = checkpoint_callback(args, fold=fold)
+    ckpt_callback = checkpoint_callback(args, fold=fold, val_metric='val_roc_auc')
     callbacks.append(ckpt_callback)
     callbacks.append(lr_monitor_callback())
 
