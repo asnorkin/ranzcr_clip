@@ -212,7 +212,9 @@ def train(args: Namespace):
     NUM_FOLDS = 5
 
     # Load items only once
-    items, classes = XRayDataset.load_items(labels_csv=args.labels_csv, images_dir=args.images_dir)
+    items, classes = XRayDataset.load_items(
+        labels_csv=args.labels_csv, images_dir=args.images_dir, lung_masks_dir=args.lung_masks_dir
+    )
 
     # Folds
     folds = args.folds or sorted({item['fold'] for item in items})

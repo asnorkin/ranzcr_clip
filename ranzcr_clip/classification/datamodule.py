@@ -169,4 +169,8 @@ class XRayClassificationDataModule(pl.LightningDataModule):
         parser.add_argument('--num_workers', type=int, default=8)
         parser.add_argument('--batch_size', type=int, default=32)
 
+        # Lung masks
+        parser.add_argument('--lung_masks', action='store_true')
+        parser.add_argument('--lung_masks_dir', type=str, default='data/train_lung_masks')
+
         return parser

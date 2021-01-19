@@ -32,10 +32,10 @@ def resnet50(config: ModelConfig) -> nn.Module:
     return model
 
 
-def efficientnet(config: ModelConfig) -> nn.Module:
+def efficientnet(config: ModelConfig, in_channels: int = 1) -> nn.Module:
     params = {
         'model_name': config.model_name.replace('_', '-'),
-        'in_channels': 1,
+        'in_channels': in_channels,
         'num_classes': config.num_classes,
         'dropout_rate': config.dropout_rate,
         'drop_connect_rate': config.drop_connect_rate,

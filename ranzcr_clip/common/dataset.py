@@ -23,6 +23,8 @@ class ImageItemsDataset(Dataset):
         if self.transform is not None:
             sample = self.transform(**sample)
 
+        sample = self._postprocess_sample(sample)
+
         return sample
 
     def setup_indices(self, indices: list) -> None:
@@ -32,6 +34,10 @@ class ImageItemsDataset(Dataset):
         return self.indices[index]
 
     def _load_sample(self, index: int) -> dict:
+        raise NotImplementedError
+
+    @staticmethod
+    def _postprocess_sample(sample: dict) -> dict:
         raise NotImplementedError
 
     @classmethod

@@ -28,7 +28,7 @@ class XRayClassificationModule(pl.LightningModule):
         self.hparams = hparams
 
         # Model
-        self.model = self.build_model(self.config)
+        self.model = self.build_model(self.config, lung_masks=self.hparams.lung_masks)
 
         # Criterion
         self.criterion = BCEWithLogitsLoss(epsilon=self.hparams.smoothing_epsilon)
@@ -300,7 +300,9 @@ class XRayClassificationModule(pl.LightningModule):
         return parser
 
     @staticmethod
-    def build_model(config: ModelConfig, checkpoint_file: Optional[str] = None) -> torch.nn.Module:
+    def build_model(
+        config: ModelConfig, checkpoint_file: Optional[str] = None, lung_masks: bool = False
+    ) -> torch.nn.Module:
         if config.model_name.startswith('efficientnet'):
             model_builder = modelzoo.efficientnet
         else:
@@ -312,7 +314,7 @@ class XRayClassificationModule(pl.LightningModule):
         if checkpoint_file is not None:
             config.pretrained = False
 
-        model = model_builder(config)
+        model = model_builder(config, in_channels=2 if lung_masks else 1)
 
         if checkpoint_file is not None:
             ckpt = torch.load(checkpoint_file, map_location='cpu')

@@ -20,6 +20,10 @@ class XRayLungDataset(ImageItemsDataset):
 
         return sample
 
+    @staticmethod
+    def _postprocess_sample(sample: dict) -> dict:
+        return sample
+
     @classmethod
     def load_items(cls, labels_csv: str, images_dir: str, masks_dir: str) -> list:
         labels_df = pd.read_csv(labels_csv)
