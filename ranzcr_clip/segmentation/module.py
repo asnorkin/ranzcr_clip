@@ -55,7 +55,7 @@ class LungSegmentationModule(pl.LightningModule):
         logits = self.forward(batch['image'])[:, 0]
         losses = self.criterion(logits, batch['mask'])
 
-        self.log('dice', losses['dice'], prog_bar=True, logger=True)
+        self.log('dice', losses['dice'], prog_bar=True, logger=True, sync_dist=True)
 
         if stage == 'val':
             self.log_dict(
@@ -65,8 +65,9 @@ class LungSegmentationModule(pl.LightningModule):
                 },
                 prog_bar=True,
                 logger=True,
+                sync_dist=True,
             )
-            self.log('val_monitor', -losses['dice'])
+            self.log('val_monitor', -losses['dice'], sync_dist=True)
 
         return losses['total']
 
