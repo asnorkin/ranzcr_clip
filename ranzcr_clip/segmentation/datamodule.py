@@ -53,7 +53,6 @@ class LungSegmentationDataModule(pl.LightningDataModule):
             A.RandomResizedCrop(height=self.input_size, width=self.input_size, scale=(0.9, 1), p=1),
             A.HorizontalFlip(p=0.5),
             A.ShiftScaleRotate(p=0.5),
-            A.HueSaturationValue(hue_shift_limit=10, sat_shift_limit=10, val_shift_limit=10, p=0.7),
             A.RandomBrightnessContrast(brightness_limit=(-0.2, 0.2), contrast_limit=(-0.2, 0.2), p=0.7),
             A.OneOf(
                 [
