@@ -101,6 +101,10 @@ class InferenceXRayDataset(ImageItemsDataset):
 
         return sample
 
+    @staticmethod
+    def _postprocess_sample(sample: dict) -> dict:
+        return sample
+
     @classmethod
     def load_items(cls, images_dir: str) -> list:
         image_files = [osp.join(images_dir, fname) for fname in os.listdir(images_dir)]
