@@ -15,24 +15,28 @@ class EnsemblePredictor(Predictor):
         self.config = config
         self.predictors = predictors
 
-    def predict_batch(self, batch, **predict_kwargs) -> torch.Tensor:
+    def predict_batch(self, batch, output: str = 'mean', power: int = 1, **predict_kwargs) -> torch.Tensor:
         batch_predictions = [predictor.predict_batch(batch, **predict_kwargs) for predictor in self.predictors]
-        batch_predictions = self.merge(batch_predictions)
+        batch_predictions = self.merge(batch_predictions, output=output, power=power)
         return batch_predictions
 
-    def merge(self, batch_predictions: list) -> torch.Tensor:
+    def merge(self, batch_predictions: list, output: str = 'mean', power: int = 1) -> torch.Tensor:
         raise NotImplementedError
 
 
 class FoldPredictor(EnsemblePredictor):
-    def merge(self, batch_predictions: list, output: str = 'mean') -> torch.Tensor:
+    def merge(self, batch_predictions: list, output: str = 'mean', power: int = 1) -> torch.Tensor:
         if output not in {'rank', 'mean'}:
             raise ValueError(f'Unexpected merge output type: {output}')
 
         if output == 'rank':
             return rank_average(batch_predictions)
 
-        return torch.stack(batch_predictions).mean(dim=0)
+        batch_predictions = torch.stack(batch_predictions)
+        if power > 1:
+            batch_predictions **= power
+
+        return batch_predictions.mean(dim=0)
 
     @classmethod
     def create_from_checkpoints(cls, checkpoints_dir: str, folds: Optional[str] = None):
