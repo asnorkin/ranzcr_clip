@@ -33,8 +33,8 @@ class FoldPredictor(EnsemblePredictor):
             return rank_average(batch_predictions)
 
         batch_predictions = torch.stack(batch_predictions)
-        if power > 1:
-            batch_predictions **= power
+        if power != 1:
+            batch_predictions = batch_predictions ** power
 
         return batch_predictions.mean(dim=0)
 
