@@ -84,7 +84,7 @@ def main(args: Namespace):
     # Make predictions
     predictions, image_uids = [], []
     for batch in tqdm(batch_generator, desc='Make predictions', unit='batch'):
-        predictions.append(predictor.predict_batch(batch, tta=args.tta))
+        predictions.append(predictor.predict_batch(batch, tta=args.tta, power=args.power))
         image_uids.extend(batch['instance_uid'])
 
     # Aggregate
