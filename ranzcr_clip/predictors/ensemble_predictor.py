@@ -34,8 +34,7 @@ class FoldPredictor(EnsemblePredictor):
 
         batch_predictions = torch.stack(batch_predictions)
         if power != 1:
-            power = torch.as_tensor(power).to(batch_predictions)
-            batch_predictions **= power
+            torch.pow(batch_predictions, power, out=batch_predictions)
 
         return batch_predictions.mean(dim=0)
 
