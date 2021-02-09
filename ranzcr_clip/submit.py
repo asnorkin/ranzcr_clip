@@ -38,7 +38,7 @@ def config_args() -> Namespace:
     ap.add_argument('--batch_size', type=int, default=16)
     ap.add_argument('--num_workers', type=int, default=8)
     ap.add_argument('--tta', action='store_true')
-    ap.add_argument('--power', type=int, default=1)
+    ap.add_argument('--power', type=float, default=1.0)
     ap.add_argument('--folds', type=str, default=None)
 
     args = ap.parse_args()

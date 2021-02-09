@@ -15,7 +15,7 @@ class EnsemblePredictor(Predictor):
         self.config = config
         self.predictors = predictors
 
-    def predict_batch(self, batch, output: str = 'mean', power: int = 1, **predict_kwargs) -> torch.Tensor:
+    def predict_batch(self, batch, output: str = 'mean', power: float = 1.0, **predict_kwargs) -> torch.Tensor:
         batch_predictions = [predictor.predict_batch(batch, **predict_kwargs) for predictor in self.predictors]
         batch_predictions = self.merge(batch_predictions, output=output, power=power)
         return batch_predictions
@@ -25,7 +25,7 @@ class EnsemblePredictor(Predictor):
 
 
 class FoldPredictor(EnsemblePredictor):
-    def merge(self, batch_predictions: list, output: str = 'mean', power: int = 1) -> torch.Tensor:
+    def merge(self, batch_predictions: list, output: str = 'mean', power: float = 1.0) -> torch.Tensor:
         if output not in {'rank', 'mean'}:
             raise ValueError(f'Unexpected merge output type: {output}')
 
