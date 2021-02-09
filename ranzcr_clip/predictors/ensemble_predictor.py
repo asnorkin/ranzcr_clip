@@ -20,7 +20,7 @@ class EnsemblePredictor(Predictor):
         batch_predictions = self.merge(batch_predictions, output=output, power=power)
         return batch_predictions
 
-    def merge(self, batch_predictions: list, output: str = 'mean', power: int = 1) -> torch.Tensor:
+    def merge(self, batch_predictions: list, output: str = 'mean', power: float = 1) -> torch.Tensor:
         raise NotImplementedError
 
 
