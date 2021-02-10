@@ -25,6 +25,7 @@ from common.pl_utils import (
     early_stopping_callback,
     get_checkpoint,
     lr_monitor_callback,
+    parse_args,
     tensorboard_logger,
 )
 
@@ -60,24 +61,7 @@ def config_args() -> Namespace:
     parser = XRayClassificationModule.add_model_specific_args(parser)
     parser = pl.Trainer.add_argparse_args(parser)
 
-    args = parser.parse_args()
-
-    args.archives_dir = osp.join(args.work_dir, 'archived_checkpoints')
-    args.config_file = osp.join(args.work_dir, 'models', args.project + '.yml')
-    args.checkpoints_dir = f'{args.work_dir}/checkpoints/{args.experiment}'
-    args.log_dir = f'{args.work_dir}/logs'
-
-    if args.num_epochs is not None:
-        args.max_epochs = args.num_epochs
-
-    if args.seed is not None:
-        args.benchmark = False
-        args.deterministic = True
-
-    if args.folds is not None:
-        args.folds = list(map(int, args.folds.split(',')))
-
-    return args
+    return parse_args(parser)
 
 
 def report(probabilities: np.ndarray, labels: np.ndarray, checkpoints_dir: Optional[str] = None) -> float:

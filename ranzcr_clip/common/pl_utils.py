@@ -80,3 +80,24 @@ def archive_checkpoints(args: Namespace, oof_roc_auc: float, folds: list):
             zipf.write(osp.join(args.checkpoints_dir, fname), arcname=arcname)
 
     print('Checkpoints successfully archived!')
+
+
+def parse_args(parser):
+    args = parser.parse_args()
+
+    args.archives_dir = osp.join(args.work_dir, 'archived_checkpoints')
+    args.config_file = osp.join(args.work_dir, 'models', args.project + '.yml')
+    args.checkpoints_dir = f'{args.work_dir}/checkpoints/{args.experiment}'
+    args.log_dir = f'{args.work_dir}/logs'
+
+    if args.num_epochs is not None:
+        args.max_epochs = args.num_epochs
+
+    if args.seed is not None:
+        args.benchmark = False
+        args.deterministic = True
+
+    if args.folds is not None:
+        args.folds = list(map(int, args.folds.split(',')))
+
+    return args
