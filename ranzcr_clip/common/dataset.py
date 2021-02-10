@@ -1,7 +1,24 @@
 import albumentations as A
 import cv2 as cv
 import numpy as np
+import pandas as pd
 from torch.utils.data.dataset import Dataset
+
+
+def load_train_csv(train_csv_path):
+    train_csv = pd.read_csv(train_csv_path)
+
+    # Fix errors
+    train_csv.loc[
+        train_csv.StudyInstanceUID == '1.2.826.0.1.3680043.8.498.93345761486297843389996628528592497280',
+        'ETT - Abnormal',
+    ] = 0
+    train_csv.loc[
+        train_csv.StudyInstanceUID == '1.2.826.0.1.3680043.8.498.93345761486297843389996628528592497280',
+        'CVC - Abnormal',
+    ] = 1
+
+    return train_csv
 
 
 class ImageItemsDataset(Dataset):
