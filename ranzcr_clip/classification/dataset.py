@@ -7,7 +7,7 @@ import numpy as np
 import torch
 from tqdm import tqdm
 
-from common.dataset import ImageItemsDataset, load_train_csv
+from common.dataset import ImageItemsDataset, load_train_labels
 
 
 class XRayDataset(ImageItemsDataset):
@@ -41,11 +41,8 @@ class XRayDataset(ImageItemsDataset):
     @classmethod
     def load_items(cls, labels_csv: str, images_dir: str, lung_masks_dir: Optional[str] = None):
         # Read labels
-        labels_df = load_train_csv(labels_csv)
+        labels_df = load_train_labels(labels_csv)
         classes = list(labels_df.columns[1:-2])
-
-        # Fix items order
-        labels_df.sort_values(by='StudyInstanceUID', inplace=True)
 
         # Load items
         items, not_found = [], 0

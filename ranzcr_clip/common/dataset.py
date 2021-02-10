@@ -5,20 +5,23 @@ import pandas as pd
 from torch.utils.data.dataset import Dataset
 
 
-def load_train_csv(train_csv_path):
-    train_csv = pd.read_csv(train_csv_path)
+def load_train_labels(train_labels_file: str) -> pd.DataFrame:
+    labels_df = pd.read_csv(train_labels_file)
 
     # Fix errors
-    train_csv.loc[
-        train_csv.StudyInstanceUID == '1.2.826.0.1.3680043.8.498.93345761486297843389996628528592497280',
+    labels_df.loc[
+        labels_df.StudyInstanceUID == '1.2.826.0.1.3680043.8.498.93345761486297843389996628528592497280',
         'ETT - Abnormal',
     ] = 0
-    train_csv.loc[
-        train_csv.StudyInstanceUID == '1.2.826.0.1.3680043.8.498.93345761486297843389996628528592497280',
+    labels_df.loc[
+        labels_df.StudyInstanceUID == '1.2.826.0.1.3680043.8.498.93345761486297843389996628528592497280',
         'CVC - Abnormal',
     ] = 1
 
-    return train_csv
+    # Fix items order
+    labels_df.sort_values(by='StudyInstanceUID', inplace=True)
+
+    return labels_df
 
 
 class ImageItemsDataset(Dataset):
