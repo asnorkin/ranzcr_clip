@@ -35,11 +35,9 @@ def reduce_auc_roc(auc_roc_values, reduction='mean'):
     return reduce_loss(result, reduction=reduction)
 
 
-def batch_auc_roc(targets, probabilities, reduction='mean'):
-    N_TARGETS = 11
-
-    result = torch.ones(N_TARGETS).to(targets) * -1
-    for i in range(11):
+def batch_auc_roc(targets, probabilities, reduction='mean', n_targets=11):
+    result = torch.ones(n_targets).to(targets) * -1
+    for i in range(n_targets):
         targets_i, probabilities_i = targets[:, i], probabilities[:, i]
         if torch.unique(targets_i).numel() == 1:
             print(f'Target {i} has only one class. Skip it in ROC AUC.')
