@@ -1,0 +1,18 @@
+model_name: efficientnet_b5
+num_classes: 11
+pretrained: True
+weights_path: classification/pretrained_weights/efficientnet-b5-ns.pth
+
+# Input size
+input_height: 512
+input_width: 512
+
+# Network params
+width_coefficient: 1.6
+
+# Dropout
+dropout_rate: 0.6
+drop_connect_rate: 0.6
+
+# Confidence
+confidence_threshold: 0.5

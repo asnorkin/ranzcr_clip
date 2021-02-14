@@ -42,6 +42,9 @@ def efficientnet(config: ModelConfig, in_channels: int = 1) -> nn.Module:
         'width_coefficient': config.width_coefficient,
     }
 
+    if config.weights_path is not None:
+        params['weights_path'] = config.weights_path
+
     if config.pretrained:
         model = EfficientNet.from_pretrained(**params)
     else:
