@@ -163,10 +163,15 @@ def train_fold(
     # Existing checkpoint
     checkpoint_file = get_checkpoint(args.checkpoints_dir, fold)
     if checkpoint_file is not None:
-        if args.exist_checkpoint == 'resume':
+        if args.exist_checkpoint == 'resume' or args.finetune:
             args.resume_from_checkpoint = checkpoint_file
         elif args.exist_checkpoint == 'remove':
             os.remove(checkpoint_file)
+
+    elif args.finetune:
+        raise RuntimeError(
+            f'Misconfiguration: --finetune flag is set, but there is no checkpoint file found for fold {fold}'
+        )
 
     # Create trainer
     trainer = pl.Trainer.from_argparse_args(args, callbacks=callbacks, logger=logger)
