@@ -1,5 +1,5 @@
 WORK_DIR=classification
-LR=1e-4
+LR=1e-3
 EPOCHS=50
 BATCH_SIZE=48
 ACC_BATCHES=1
@@ -8,7 +8,7 @@ PRECISION=16
 
 PROJECT=efficientnet_b0
 
-EXPERIMENT=${PROJECT}_${LR}lr${EPOCHS}e${BATCH_SIZE}x${ACC_BATCHES}b${PRECISION}p
+EXPERIMENT=${PROJECT}_finetune_${LR}lr${EPOCHS}e${BATCH_SIZE}x${ACC_BATCHES}b${PRECISION}p
 GPUS=0,1
 
 # Train outputs dir
@@ -34,4 +34,5 @@ nohup python classification/train.py \
     --precision=${PRECISION} \
     --use_tta \
     --finetune \
+    --exist_checkpoint=resume \
     &> ${TRAIN_OUTPUTS_DIR}/${EXPERIMENT}.log 2>&1 &
