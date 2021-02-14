@@ -1,5 +1,5 @@
 WORK_DIR=classification
-LR=1e-4
+LR=1e-3
 EPOCHS=50
 BATCH_SIZE=48
 ACC_BATCHES=1
