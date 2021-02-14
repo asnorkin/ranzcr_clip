@@ -1,12 +1,12 @@
 from argparse import ArgumentParser, Namespace
 from math import ceil
-from typing import Callable, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
 import pytorch_lightning as pl
 
 import torch
 from torch import distributed as dist
-from torch.optim import AdamW, Optimizer
+from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingWarmRestarts, OneCycleLR, ReduceLROnPlateau
 
 from classification import modelzoo
@@ -58,30 +58,30 @@ class XRayClassificationModule(pl.LightningModule):
 
         return losses, metrics
 
-    def optimizer_step(
-        self,
-        epoch: int = None,
-        batch_idx: int = None,
-        optimizer: Optimizer = None,
-        optimizer_idx: int = None,
-        optimizer_closure: Optional[Callable] = None,
-        on_tpu: bool = None,
-        using_native_amp: bool = None,
-        using_lbfgs: bool = None,
-    ) -> None:
-        # warm up lr
-        if epoch < self.hparams.lr_warmup_epochs:
-            warmup_steps_per_epoch = self.trainer.num_training_batches // self.hparams.accumulate_grad_batches
-            warmup_steps = max(1, warmup_steps_per_epoch * self.hparams.lr_warmup_epochs)
-            lr_scale = min(1.0, float(self.trainer.global_step + 1) / warmup_steps)
-            step_lr = lr_scale * self.hparams.lr
-            for pg in optimizer.param_groups:
-                pg['lr'] = step_lr
-
-        # update params
-        super().optimizer_step(
-            epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu, using_native_amp, using_lbfgs
-        )
+    # def optimizer_step(
+    #     self,
+    #     epoch: int = None,
+    #     batch_idx: int = None,
+    #     optimizer: Optimizer = None,
+    #     optimizer_idx: int = None,
+    #     optimizer_closure: Optional[Callable] = None,
+    #     on_tpu: bool = None,
+    #     using_native_amp: bool = None,
+    #     using_lbfgs: bool = None,
+    # ) -> None:
+    #     # warm up lr
+    #     if epoch < self.hparams.lr_warmup_epochs:
+    #         warmup_steps_per_epoch = self.trainer.num_training_batches // self.hparams.accumulate_grad_batches
+    #         warmup_steps = max(1, warmup_steps_per_epoch * self.hparams.lr_warmup_epochs)
+    #         lr_scale = min(1.0, float(self.trainer.global_step + 1) / warmup_steps)
+    #         step_lr = lr_scale * self.hparams.lr
+    #         for pg in optimizer.param_groups:
+    #             pg['lr'] = step_lr
+    #
+    #     # update params
+    #     super().optimizer_step(
+    #         epoch, batch_idx, optimizer, optimizer_idx, optimizer_closure, on_tpu, using_native_amp, using_lbfgs
+    #     )
 
     def training_step(self, batch: dict, batch_idx: int) -> dict:
         return self._step(batch, batch_idx, stage='train')
