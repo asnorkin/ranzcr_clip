@@ -1,0 +1,4 @@
+outs:
+- md5: e6e8a2c49016e3dd0e32a44a4edb995c
+  size: 122544214
+  path: efficientnet-b5-ns.pth
