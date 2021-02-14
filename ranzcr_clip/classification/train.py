@@ -201,8 +201,9 @@ def train(args: Namespace):
     NUM_FOLDS = 5
 
     # Load items only once
+    lung_masks_dir = args.lung_masks_dir if args.lung_masks else None
     items, classes = XRayDataset.load_items(
-        labels_csv=args.labels_csv, images_dir=args.images_dir, lung_masks_dir=args.lung_masks_dir
+        labels_csv=args.labels_csv, images_dir=args.images_dir, lung_masks_dir=lung_masks_dir
     )
 
     # Folds
