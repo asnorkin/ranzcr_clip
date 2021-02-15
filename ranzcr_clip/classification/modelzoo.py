@@ -33,6 +33,7 @@ def resnet50(config: ModelConfig) -> nn.Module:
 
 
 def efficientnet(config: ModelConfig, in_channels: int = 1) -> nn.Module:
+    # Set up params
     params = {
         'model_name': config.model_name.replace('_', '-'),
         'in_channels': in_channels,
@@ -45,9 +46,15 @@ def efficientnet(config: ModelConfig, in_channels: int = 1) -> nn.Module:
     if config.weights_path is not None:
         params['weights_path'] = config.weights_path
 
+    # Load pretrained weights
     if config.pretrained:
         model = EfficientNet.from_pretrained(**params)
     else:
         model = EfficientNet.from_name(**params)
+
+    # Freeze first blocks
+    for i in range(getattr(config, 'freeze_blocks', 0)):
+        for p in model._blocks[i].parameters():
+            p.requires_grad = False
 
     return model
