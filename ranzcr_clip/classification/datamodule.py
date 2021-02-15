@@ -67,13 +67,14 @@ class XRayClassificationDataModule(pl.LightningDataModule):
                     A.GaussianBlur(),
                     A.MotionBlur(),
                     A.MedianBlur(),
+                    A.ISONoise(),
                 ],
                 p=0.2,
             ),
             A.OneOf(
                 [
-                    A.ImageCompression(),
-                    A.Downscale(scale_min=0.1, scale_max=0.15),
+                    A.ImageCompression(quality_lower=80),
+                    A.Downscale(scale_min=0.5, scale_max=0.95),
                 ],
                 p=0.2,
             ),
