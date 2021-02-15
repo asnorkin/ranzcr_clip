@@ -87,12 +87,9 @@ class XRayClassificationDataModule(pl.LightningDataModule):
             ),
         ]
 
+        # Just TTA augmentations
         finetune_augmentations = [
-            A.RandomResizedCrop(height=self.input_size, width=self.input_size, scale=(0.9, 1), p=1),
             A.HorizontalFlip(p=0.5),
-            A.ShiftScaleRotate(p=0.5, rotate_limit=5),
-            A.RandomBrightnessContrast(brightness_limit=(-0.2, 0.2), contrast_limit=(-0.2, 0.2), p=0.7),
-            A.IAASharpen(p=0.2),
         ]
 
         augmentations = finetune_augmentations if self.hparams.finetune else train_augmentations
