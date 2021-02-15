@@ -53,7 +53,8 @@ def efficientnet(config: ModelConfig, in_channels: int = 1) -> nn.Module:
         model = EfficientNet.from_name(**params)
 
     # Freeze first blocks
-    for i in range(getattr(config, 'freeze_blocks', 0)):
+    freeze_blocks = config.freeze_blocks or 0
+    for i in range(freeze_blocks):
         for p in model._blocks[i].parameters():
             p.requires_grad = False
 
