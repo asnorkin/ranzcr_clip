@@ -67,7 +67,6 @@ class XRayClassificationDataModule(pl.LightningDataModule):
                     A.GaussianBlur(),
                     A.MotionBlur(),
                     A.MedianBlur(),
-                    A.ISONoise(),
                 ],
                 p=0.2,
             ),
