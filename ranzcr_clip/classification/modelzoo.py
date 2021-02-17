@@ -1,41 +1,40 @@
 from efficientnet_pytorch import EfficientNet
 
+from timm import models as timm_models
 from torch import nn
-from torchvision import models
+from torchvision import models as tv_models
 
 from common.model_utils import ModelConfig
 
 
 def resnext50_32x4d(config: ModelConfig, in_channels: int = 1) -> nn.Module:
-    params = {'pretrained': config.pretrained}
+    params = {
+        'pretrained': config.pretrained,
+        'num_classes': config.num_classes,
+    }
 
     # Load original model
-    model = models.resnext50_32x4d(**params)
+    model = tv_models.resnext50_32x4d(**params)
 
     # Change input
     model.conv1.in_channels = in_channels
     model.conv1.weight = nn.Parameter(model.conv1.weight.mean(dim=1, keepdim=True))
-
-    # Change head
-    num_features = model.fc.in_features
-    model.fc = nn.Linear(num_features, config.num_classes)
 
     return model
 
 
 def resnet50(config: ModelConfig, in_channels: int = 1) -> nn.Module:
-    params = {'pretrained': config.pretrained}
+    params = {
+        'pretrained': config.pretrained,
+        'num_classes': config.num_classes,
+    }
 
     # Load original model
-    model = models.resnet50(**params)
+    model = tv_models.resnet50(**params)
 
     # Change input
     model.conv1.in_channels = in_channels
     model.conv1.weight = nn.Parameter(model.conv1.weight.mean(dim=1, keepdim=True))
-
-    # Change head
-    num_features = model.fc.in_features
-    model.fc = nn.Linear(num_features, config.num_classes)
 
     return model
 
@@ -70,17 +69,28 @@ def efficientnet(config: ModelConfig, in_channels: int = 1) -> nn.Module:
 
 
 def densenet121(config: ModelConfig, in_channels: int = 1) -> nn.Module:
-    params = {'pretrained': config.pretrained}
+    params = {
+        'pretrained': config.pretrained,
+        'num_classes': config.num_classes,
+    }
 
     # Load original model
-    model = models.densenet121(**params)
+    model = tv_models.densenet121(**params)
 
     # Change input
     model.features.conv0.in_channels = in_channels
     model.features.conv0.weight = nn.Parameter(model.features.conv0.weight.mean(dim=1, keepdim=True))
 
-    # Change head
-    num_features = model.classifier.in_features
-    model.classifier = nn.Linear(num_features, config.num_classes)
+    return model
+
+
+def nfnet(config: ModelConfig, in_channels: int = 1) -> nn.Module:
+    params = {
+        'pretrained': config.pretrained,
+        'num_classes': config.num_classes,
+        'in_chans': in_channels,
+    }
+
+    model = getattr(timm_models.nfnet, config.model_name)(**params)
 
     return model

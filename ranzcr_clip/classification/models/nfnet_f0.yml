@@ -1,0 +1,10 @@
+model_name: nfnet_f0
+num_classes: 11
+pretrained: True
+
+# Input size
+input_height: 512
+input_width: 512
+
+# Confidence
+confidence_threshold: 0.5

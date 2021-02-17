@@ -304,12 +304,11 @@ class XRayClassificationModule(pl.LightningModule):
     def build_model(
         config: ModelConfig, checkpoint_file: Optional[str] = None, lung_masks: bool = False
     ) -> torch.nn.Module:
-        if config.model_name.startswith('efficientnet'):
-            model_builder = modelzoo.efficientnet
+        if hasattr(modelzoo, config.model_name):
+            model_builder = getattr(modelzoo, config.model_name)
+        elif hasattr(modelzoo, config.model_name.split('_')[0]):
+            model_builder = getattr(modelzoo, config.model_name.split('_')[0])
         else:
-            model_builder = getattr(modelzoo, config.model_name, None)
-
-        if model_builder is None:
             raise ValueError(f'Unexpected model name: {config.model_name}')
 
         if checkpoint_file is not None:
