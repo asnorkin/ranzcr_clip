@@ -24,6 +24,18 @@ def load_train_labels(train_labels_file: str) -> pd.DataFrame:
     return labels_df
 
 
+def load_train_annotations(train_annotations_file: str) -> pd.DataFrame:
+    anno_df = pd.read_csv(train_annotations_file)
+
+    # Fix errors
+    anno_df.loc[4344, 'label'] = 'CVC - Abnormal'
+
+    # Fix items order
+    anno_df.sort_values(by='StudyInstanceUID', inplace=True)
+
+    return anno_df
+
+
 class ImageItemsDataset(Dataset):
     def __init__(self, items: list, classes: list, transform: A.BasicTransform = None, indices: list = None):
         self.items = items
