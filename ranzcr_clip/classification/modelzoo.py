@@ -67,3 +67,20 @@ def efficientnet(config: ModelConfig, in_channels: int = 1) -> nn.Module:
             p.requires_grad = False
 
     return model
+
+
+def densenet121(config: ModelConfig, in_channels: int = 1) -> nn.Module:
+    params = {'pretrained': config.pretrained}
+
+    # Load original model
+    model = models.densenet121(**params)
+
+    # Change input
+    model.features.conv0.in_channels = in_channels
+    model.features.conv0.weight = nn.Parameter(model.features.conv0.weight.mean(dim=1, keepdim=True))
+
+    # Change head
+    num_features = model.classifier.in_features
+    model.classifier = nn.Linear(num_features, config.num_classes)
+
+    return model

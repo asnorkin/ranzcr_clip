@@ -1,0 +1,9 @@
+model_name: densenet121
+pretrained: True
+
+input_height: 512
+input_width: 512
+
+num_classes: 11
+
+confidence_threshold: 0.5
