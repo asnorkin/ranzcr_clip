@@ -72,7 +72,7 @@ def densenet(config: ModelConfig, in_channels: int = 1) -> nn.Module:
     params = {'pretrained': config.pretrained}
 
     # Load original model
-    model = getattr(tv_models, config.model_name)(**params)
+    model = getattr(tv_models, config.model_name.replace('_', ''))(**params)
 
     # Change input
     model.features.conv0.in_channels = in_channels
