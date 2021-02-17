@@ -68,18 +68,18 @@ def efficientnet(config: ModelConfig, in_channels: int = 1) -> nn.Module:
     return model
 
 
-def densenet121(config: ModelConfig, in_channels: int = 1) -> nn.Module:
-    params = {
-        'pretrained': config.pretrained,
-        'num_classes': config.num_classes,
-    }
+def densenet(config: ModelConfig, in_channels: int = 1) -> nn.Module:
+    params = {'pretrained': config.pretrained}
 
     # Load original model
-    model = tv_models.densenet121(**params)
+    model = getattr(tv_models, config.model_name)(**params)
 
     # Change input
     model.features.conv0.in_channels = in_channels
     model.features.conv0.weight = nn.Parameter(model.features.conv0.weight.mean(dim=1, keepdim=True))
+
+    # Change head
+    model.classifier = nn.Linear(model.classifier.in_features, config.num_classes)
 
     return model
 
