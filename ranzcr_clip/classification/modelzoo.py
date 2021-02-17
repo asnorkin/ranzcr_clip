@@ -6,11 +6,15 @@ from torchvision import models
 from common.model_utils import ModelConfig
 
 
-def resnext50_32x4d(config: ModelConfig) -> nn.Module:
+def resnext50_32x4d(config: ModelConfig, in_channels: int = 1) -> nn.Module:
     params = {'pretrained': config.pretrained}
 
     # Load original model
     model = models.resnext50_32x4d(**params)
+
+    # Change input
+    model.conv1.in_channels = in_channels
+    model.conv1.weight = nn.Parameter(model.conv1.weight.mean(dim=1, keepdim=True))
 
     # Change head
     num_features = model.fc.in_features
@@ -19,11 +23,15 @@ def resnext50_32x4d(config: ModelConfig) -> nn.Module:
     return model
 
 
-def resnet50(config: ModelConfig) -> nn.Module:
+def resnet50(config: ModelConfig, in_channels: int = 1) -> nn.Module:
     params = {'pretrained': config.pretrained}
 
     # Load original model
     model = models.resnet50(**params)
+
+    # Change input
+    model.conv1.in_channels = in_channels
+    model.conv1.weight = nn.Parameter(model.conv1.weight.mean(dim=1, keepdim=True))
 
     # Change head
     num_features = model.fc.in_features
