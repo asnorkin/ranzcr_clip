@@ -1,8 +1,8 @@
-model_name: densenet_121
+model_name: resnet_200
 pretrained: True
 
-input_height: 512
-input_width: 512
+input_height: 640
+input_width: 640
 
 num_classes: 11
 

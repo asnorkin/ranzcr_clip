@@ -1,4 +1,4 @@
-model_name: densenet201
+model_name: densenet_201
 pretrained: True
 
 input_height: 640

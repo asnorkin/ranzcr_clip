@@ -23,14 +23,12 @@ def resnext50_32x4d(config: ModelConfig, in_channels: int = 1) -> nn.Module:
     return model
 
 
-def resnet50(config: ModelConfig, in_channels: int = 1) -> nn.Module:
-    params = {
-        'pretrained': config.pretrained,
-        'num_classes': config.num_classes,
-    }
+def resnet(config: ModelConfig, in_channels: int = 1) -> nn.Module:
+    params = {'pretrained': config.pretrained}
 
     # Load original model
-    model = tv_models.resnet50(**params)
+    model_name = config.model_name.replace('_', '')
+    model = getattr(timm_models, model_name)(**params)
 
     # Change input
     model.conv1.in_channels = in_channels
@@ -72,7 +70,8 @@ def densenet(config: ModelConfig, in_channels: int = 1) -> nn.Module:
     params = {'pretrained': config.pretrained}
 
     # Load original model
-    model = getattr(tv_models, config.model_name.replace('_', ''))(**params)
+    model_name = config.model_name.replace('_', '')
+    model = getattr(tv_models, model_name)(**params)
 
     # Change input
     model.features.conv0.in_channels = in_channels

@@ -1,4 +1,4 @@
-model_name: resnet50
+model_name: resnet_50
 pretrained: True
 
 input_height: 512
