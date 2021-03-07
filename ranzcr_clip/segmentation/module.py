@@ -52,7 +52,7 @@ class LungSegmentationModule(pl.LightningModule):
         return self._step(batch, batch_idx, stage='test')
 
     def _step(self, batch: dict, _batch_idx: int, stage: str) -> dict:
-        logits = self.forward(batch['image'])[:, 0]
+        logits = self.forward(batch['image']).permute(0, 2, 3, 1)
         losses = self.criterion(logits, batch['mask'])
 
         self.log('dice', losses['dice'], prog_bar=True, logger=True, sync_dist=True)

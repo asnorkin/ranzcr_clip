@@ -16,7 +16,7 @@ from common.pl_utils import (
 )
 
 from segmentation.datamodule import LungSegmentationDataModule
-from segmentation.dataset import XRayLungDataset
+from segmentation.dataset import load_items
 from segmentation.module import LungSegmentationModule
 
 
@@ -24,7 +24,7 @@ def add_program_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
     parser = ArgumentParser(parents=[parent_parser], add_help=False)
 
     # General
-    parser.add_argument('--project', type=str, default='unet64_512x512')
+    parser.add_argument('--project', type=str, default='unet64_512x512_lung')
     parser.add_argument('--experiment', type=str, default='train')
     parser.add_argument('--monitor_mode', type=str, default='min')
     parser.add_argument('--exist_checkpoint', type=str, default='test', choices=['resume', 'test', 'remove'])
@@ -110,8 +110,12 @@ def train_fold(args: Namespace, fold: int = -1, items: Optional[List] = None) ->
 
 def train(args: Namespace):
     # Load items only once
-    items = XRayLungDataset.load_items(
-        labels_csv=args.labels_csv, images_dir=args.images_dir, masks_dir=args.masks_dir
+    items = load_items(
+        project=args.project,
+        annotations_csv=args.annotations_csv,
+        labels_csv=args.labels_csv,
+        images_dir=args.images_dir,
+        masks_dir=args.masks_dir,
     )
 
     # Folds

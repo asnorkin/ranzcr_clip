@@ -9,7 +9,7 @@ from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.sampler import Sampler
 
 from common.model_utils import ModelConfig
-from segmentation.dataset import XRayLungDataset
+from segmentation.dataset import load_items, XRayCatheterDataset, XRayLungDataset
 
 
 class LungSegmentationDataModule(pl.LightningDataModule):
@@ -35,10 +35,12 @@ class LungSegmentationDataModule(pl.LightningDataModule):
 
         # Load and split items
         if self.items is None:
-            self.items = XRayLungDataset.load_items(
-                labels_csv=self.hparams.labels_csv,
+            self.items = load_items(
+                project=self.hparams.project,
                 images_dir=self.hparams.images_dir,
+                labels_csv=self.hparams.labels_csv,
                 masks_dir=self.hparams.masks_dir,
+                annotations_csv=self.hparams.annotations_csv,
             )
 
         # Set up fold and split items for this fold
@@ -95,9 +97,11 @@ class LungSegmentationDataModule(pl.LightningDataModule):
             ToTensorV2(always_apply=True),
         ]
 
+        dataset_class = XRayLungDataset if 'lung' in self.hparams.project else XRayCatheterDataset
+
         # Train dataset
         train_transform = A.Compose(pre_transforms + augmentations + post_transforms)
-        self.train_dataset = XRayLungDataset(
+        self.train_dataset = dataset_class(
             items=self.items,
             classes=[],
             transform=train_transform,
@@ -106,7 +110,7 @@ class LungSegmentationDataModule(pl.LightningDataModule):
 
         # Val dataset
         val_transform = A.Compose(pre_transforms + post_transforms)
-        self.val_dataset = XRayLungDataset(
+        self.val_dataset = dataset_class(
             items=self.items,
             classes=[],
             transform=val_transform,
@@ -163,6 +167,7 @@ class LungSegmentationDataModule(pl.LightningDataModule):
 
         # Paths
         parser.add_argument('--labels_csv', type=str, default='data/train.csv')
+        parser.add_argument('--annotations_csv', type=str, default='data/train_annotations.csv')
         parser.add_argument('--images_dir', type=str, default='data/train')
         parser.add_argument('--masks_dir', type=str, default='data/train_lung_masks')
 
