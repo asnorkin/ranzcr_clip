@@ -74,6 +74,11 @@ class XRayLungDataset(SegmentationDataset):
         return cls(items, classes=[], transform=transform)
 
 
+def filter_duplicates(seq):
+    has_diff = np.asarray([True] + (seq[1:] != seq[:-1]).any(axis=1).tolist())
+    return seq[has_diff]
+
+
 def interpolate_mask(points):
     if len(points) < 2:
         raise ValueError('interpolate_mask error: can\'t interpolate less than two points mask.')
@@ -86,13 +91,13 @@ def interpolate_mask(points):
         num_points += dx + dy
 
     # Interpolate using spline
-    tck, *_ = interpolate.splprep([points[:, 0], points[:, 1]], s=0.0, k=min(3, len(points) - 1))
+    k = 1 if len(points) - 1 < 3 else 3
+    tck, *_ = interpolate.splprep([points[:, 0], points[:, 1]], s=0.0, k=k)
     xs, ys = interpolate.splev(np.linspace(0, 1, num_points), tck)
     interpolated_points = np.concatenate([xs[:, None], ys[:, None]], axis=-1).astype(int)
 
     # Remove duplicates
-    has_diff = np.asarray([True] + (interpolated_points[1:] != interpolated_points[:-1]).any(axis=1).tolist())
-    interpolated_points = interpolated_points[has_diff]
+    interpolated_points = filter_duplicates(interpolated_points)
 
     return interpolated_points
 
@@ -102,7 +107,7 @@ class XRayCatheterDataset(SegmentationDataset):
         'ETT': 0,
         'NGT': 1,
         'CVC': 2,
-        'SGC': 3,
+        'Swa': 3,
     }
 
     @classmethod
@@ -129,7 +134,7 @@ class XRayCatheterDataset(SegmentationDataset):
         anno_df = anno_df.merge(labels_df.loc[:, ['StudyInstanceUID', 'PatientID', 'fold']], on='StudyInstanceUID')
 
         def parse_mask(row):
-            return row.label[:3], np.asarray(literal_eval(row.data))
+            return row.label[:3], filter_duplicates(np.asarray(literal_eval(row.data)))
 
         items, not_found = [], 0
         for instance_uid, instance_group in anno_df.groupby('StudyInstanceUID'):
