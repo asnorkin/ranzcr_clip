@@ -39,12 +39,23 @@ CATHETER_COLORS = [(255, 204, 255), (255, 255, 204), (204, 255, 255), (224, 224,
 
 
 INSTRUCTIONS = """
-    This project demonstrates the solution of Kaggle
-    [RANZCR CLiP Competition](https://www.kaggle.com/c/ranzcr-clip-catheter-line-classification)
-    into a simple interactive app.
+This project demonstrates the solution of Kaggle
+[RANZCR CLiP Competition](https://www.kaggle.com/c/ranzcr-clip-catheter-line-classification)
+into a simple interactive app.
 
-    👈 **Please upload your Chest X-Ray scan in the sidebar to start or use demo scan**.
-    """
+👈 **Please upload your Chest X-Ray scan in the sidebar to start or use demo scan**.
+"""
+
+
+EXPLANATION = """
+The algorithm processes Chest X-Ray Scan into 3 stages:
+- Calculates lung masks
+- Calculates catheters masks
+- Checks catheters positions
+
+You can read more about catheters and their positions in the
+[Competition Description](https://www.kaggle.com/c/ranzcr-clip-catheter-line-classification/data) on Kaggle.
+"""
 
 
 def instructions():
@@ -187,14 +198,13 @@ def draw_classification_result(image, classification_result):
     return np.asarray(image)
 
 
-def draw_result_ui(
+def process_image(
     uploaded_scan: np.ndarray,
     classification_result: Dict[str, str],
     catheter_mask: np.ndarray,
     lung_mask: np.ndarray,
     params: Namespace,
-) -> None:
-
+) -> np.ndarray:
     result_image = np.copy(uploaded_scan)
     result_image = cv.cvtColor(result_image, cv.COLOR_GRAY2RGB)
 
@@ -211,6 +221,19 @@ def draw_result_ui(
 
     # Classification report
     result_image = draw_classification_result(result_image, classification_result)
+
+    return result_image
+
+
+def draw_result_ui(
+    uploaded_scan: np.ndarray,
+    classification_result: Dict[str, str],
+    catheter_mask: np.ndarray,
+    lung_mask: np.ndarray,
+    params: Namespace,
+) -> None:
+    result_image = process_image(uploaded_scan, classification_result, catheter_mask, lung_mask, params)
+    st.markdown(EXPLANATION)
     st.image(result_image, caption='Chest X-Ray Scan Processing Result', use_column_width=True)
 
     # st.subheader('Catheter Classification Report')
