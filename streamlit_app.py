@@ -47,6 +47,15 @@ INSTRUCTIONS = """
     """
 
 
+def instructions():
+    # Session state for demo image
+    # state = streamlit_state.get(use_demo=False)
+
+    # Show instructions
+    st.markdown(INSTRUCTIONS)
+    # state.use_demo = state.use_demo or st.button('Use demo scan')
+
+
 # Turn off model hashing because only confidence threshold will be change
 @st.cache(hash_funcs={common.model_utils.ModelConfig: lambda _: None}, allow_output_mutation=True)
 def load_model(model_dir: str, model_class: LightningModule) -> TorchModelPredictor:
@@ -93,11 +102,11 @@ def scan_uploader_ui() -> np.ndarray:
 
     # Left panel title, use demo button and scan upload form
     st.sidebar.header('Chest X-Ray Scan')
-    use_demo = state.use_demo or st.sidebar.button('Use demo scan')
+    state.use_demo = state.use_demo or st.button('Use demo scan')
     uploaded_scan = st.sidebar.file_uploader('Upload a chest x-ray scan', type=['png', 'jpg', 'jpeg'])
 
     # If no scan was loaded but use demo button clicked
-    if uploaded_scan is None and use_demo:
+    if uploaded_scan is None and state.use_demo:
         state.use_demo = True
         uploaded_scan = 'demo_scan.jpg'
 
@@ -214,7 +223,7 @@ def main():
     # Load scan
     uploaded_scan = scan_uploader_ui()
     if uploaded_scan is None:
-        st.markdown(INSTRUCTIONS)
+        instructions()
         return
 
     # Load params from UI
