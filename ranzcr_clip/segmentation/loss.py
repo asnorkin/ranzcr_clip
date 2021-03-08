@@ -25,6 +25,9 @@ class SegmentationLoss(torch.nn.Module):
     def bce(self, inputs, targets):
         bce = torch.nn.BCEWithLogitsLoss(reduction='none')(inputs, targets)
         if self.class_weights is not None:
+            if self.class_weights.device != bce.device:
+                self.class_weights = self.class_weights.to(bce)
+
             bce = bce * self.class_weights
 
         return bce.mean()
