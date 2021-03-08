@@ -102,7 +102,7 @@ def scan_uploader_ui() -> np.ndarray:
 
     # Left panel title, use demo button and scan upload form
     st.sidebar.header('Chest X-Ray Scan')
-    state.use_demo = state.use_demo or st.button('Use demo scan')
+    state.use_demo = state.use_demo or st.sidebar.button('Use demo scan')
     uploaded_scan = st.sidebar.file_uploader('Upload a chest x-ray scan', type=['png', 'jpg', 'jpeg'])
 
     # If no scan was loaded but use demo button clicked
