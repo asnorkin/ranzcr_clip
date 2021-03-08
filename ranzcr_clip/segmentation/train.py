@@ -17,7 +17,7 @@ from common.pl_utils import (
 
 from segmentation.datamodule import LungSegmentationDataModule
 from segmentation.dataset import load_items
-from segmentation.module import LungSegmentationModule
+from segmentation.module import XRaySegmentationModule
 
 
 def add_program_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
@@ -44,7 +44,7 @@ def config_args() -> Namespace:
 
     parser = add_program_specific_args(parser)
     parser = LungSegmentationDataModule.add_data_specific_args(parser)
-    parser = LungSegmentationModule.add_model_specific_args(parser)
+    parser = XRaySegmentationModule.add_model_specific_args(parser)
     parser = pl.Trainer.add_argparse_args(parser)
 
     return parse_args(parser)
@@ -61,7 +61,7 @@ def train_fold(args: Namespace, fold: int = -1, items: Optional[List] = None) ->
     data.setup()
 
     # Create model
-    model = LungSegmentationModule(args)
+    model = XRaySegmentationModule(args)
 
     # Create logger
     logger = tensorboard_logger(args, fold=fold)

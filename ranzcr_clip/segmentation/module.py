@@ -1,8 +1,9 @@
 from argparse import ArgumentParser, Namespace
 from math import sqrt
-from typing import Union
+from typing import Optional, Union
 
 import pytorch_lightning as pl
+import torch
 from torch.optim import AdamW, Optimizer, RMSprop
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
@@ -11,7 +12,7 @@ from segmentation.loss import SegmentationLoss
 from segmentation.modelzoo import unet
 
 
-class LungSegmentationModule(pl.LightningModule):
+class XRaySegmentationModule(pl.LightningModule):
     def __init__(self, hparams):
         super().__init__()
 
@@ -25,7 +26,7 @@ class LungSegmentationModule(pl.LightningModule):
         self.hparams = hparams
 
         # Model
-        self.model = self._build_model()
+        self.model = self.build_model(self.config)
 
         # Criterion
         self.criterion = SegmentationLoss(
@@ -109,9 +110,6 @@ class LungSegmentationModule(pl.LightningModule):
 
         return scheduler
 
-    def _build_model(self):
-        return unet(self.config)
-
     @staticmethod
     def add_model_specific_args(parent_parser: ArgumentParser) -> ArgumentParser:
         parser = ArgumentParser(parents=[parent_parser], add_help=False)
@@ -135,3 +133,14 @@ class LungSegmentationModule(pl.LightningModule):
         parser.add_argument('--es_patience', type=int, default=3)
 
         return parser
+
+    @staticmethod
+    def build_model(config: ModelConfig, checkpoint_file: Optional[str] = None) -> torch.nn.Module:
+        model = unet(config)
+
+        if checkpoint_file is not None:
+            ckpt = torch.load(checkpoint_file, map_location='cpu')
+            state_dict = {k.replace('model.', ''): v for k, v in ckpt['state_dict'].items()}
+            model.load_state_dict(state_dict, strict=True)
+
+        return model
