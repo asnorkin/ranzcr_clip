@@ -148,8 +148,8 @@ def model_ui() -> Namespace:
     # Lung segmentation
     model_params.show_lung_mask = st.sidebar.checkbox('Show lung mask', value=True)
     if model_params.show_lung_mask:
-        model_params.lung_mask_opacity = st.sidebar.slider('Mask opacity', 0.0, 1.0, 0.3, step=0.01)
-        model_params.lung_mask_threshold = st.sidebar.slider('Mask threshold', 0.0, 1.0, 0.5, step=0.01)
+        model_params.lung_mask_opacity = st.sidebar.slider('Lung mask opacity', 0.0, 1.0, 0.3, step=0.01)
+        model_params.lung_mask_threshold = st.sidebar.slider('Lung mask threshold', 0.0, 1.0, 0.5, step=0.01)
     else:
         model_params.lung_mask_threshold = 0.5
 
