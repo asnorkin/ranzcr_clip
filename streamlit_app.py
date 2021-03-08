@@ -197,7 +197,8 @@ def draw_result_ui(
 
     # Lungs
     if params.show_lung_mask:
-        result_image = add_mask(result_image, lung_mask, params.lung_mask_opacity)
+        lung_color = (204, 204, 255)
+        result_image = add_mask(result_image, lung_mask, params.lung_mask_opacity, lung_color)
 
     # Classification report
     result_image = draw_classification_result(result_image, classification_result)
