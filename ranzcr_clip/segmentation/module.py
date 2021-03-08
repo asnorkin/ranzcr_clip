@@ -13,6 +13,8 @@ from segmentation.modelzoo import unet
 
 
 class XRaySegmentationModule(pl.LightningModule):
+    CATHETERS_WEIGHTS = torch.as_tensor([0.3795, 0.1785, 0.1041, 0.6264])
+
     def __init__(self, hparams):
         super().__init__()
 
@@ -29,10 +31,12 @@ class XRaySegmentationModule(pl.LightningModule):
         self.model = self.build_model(self.config)
 
         # Criterion
+        class_weights = self.CATHETERS_WEIGHTS if 'catheter' in self.hparams.project else None
         self.criterion = SegmentationLoss(
             n_classes=self.config.n_classes,
             dice_weight=self.hparams.dice_weight,
             dice_eps=self.hparams.dice_eps,
+            class_weights=class_weights,
         )
 
     def forward(self, inputs):

@@ -112,7 +112,10 @@ class XRayCatheterDataset(SegmentationDataset):
 
     @classmethod
     def load_mask(cls, item):
-        num_classes = 4
+        if 'mask' in item:
+            return item['mask']
+
+        num_classes = len(cls.LABELS)
         dx = dy = 10
 
         mask = np.zeros((item['height'], item['width'], num_classes))
@@ -128,7 +131,7 @@ class XRayCatheterDataset(SegmentationDataset):
         return mask
 
     @classmethod
-    def load_items(cls, annotations_csv: str, images_dir: str, labels_csv: str) -> list:
+    def load_items(cls, annotations_csv: str, images_dir: str, labels_csv: str, cache_masks: bool = True) -> list:
         anno_df = load_train_annotations(annotations_csv)
         labels_df = load_train_labels(labels_csv)
         anno_df = anno_df.merge(labels_df.loc[:, ['StudyInstanceUID', 'PatientID', 'fold']], on='StudyInstanceUID')
@@ -137,24 +140,28 @@ class XRayCatheterDataset(SegmentationDataset):
             return row.label[:3], filter_duplicates(np.asarray(literal_eval(row.data)))
 
         items, not_found = [], 0
-        for instance_uid, instance_group in anno_df.groupby('StudyInstanceUID'):
+        data_iterator = tqdm(anno_df.groupby('StudyInstanceUID'), desc='Loading items', unit='item')
+        for instance_uid, instance_group in data_iterator:
             image_file = osp.join(images_dir, f'{instance_uid}.jpg')
             if not osp.exists(image_file):
                 not_found += 1
                 continue
 
             width, height = Image.open(image_file).size
-            items.append(
-                {
-                    'instance_uid': instance_uid,
-                    'image_file': image_file,
-                    'mask_points': [parse_mask(row) for row in instance_group.itertuples()],
-                    'patient_id': instance_group.PatientID.iloc[0],
-                    'fold': instance_group.fold.iloc[0],
-                    'width': width,
-                    'height': height,
-                }
-            )
+            item = {
+                'instance_uid': instance_uid,
+                'image_file': image_file,
+                'mask_points': [parse_mask(row) for row in instance_group.itertuples()],
+                'patient_id': instance_group.PatientID.iloc[0],
+                'fold': instance_group.fold.iloc[0],
+                'width': width,
+                'height': height,
+            }
+
+            if cache_masks:
+                item['mask'] = cls.load_mask(item)
+
+            items.append(item)
 
         print('Dataset successfully loaded.')
         if not_found > 0:
@@ -164,9 +171,24 @@ class XRayCatheterDataset(SegmentationDataset):
         return items
 
     @classmethod
-    def create(cls, annotations_csv: str, images_dir: str, labels_csv: str, transform: A.BasicTransform = None):
-        items = cls.load_items(annotations_csv, images_dir, labels_csv)
+    def create(
+        cls,
+        annotations_csv: str,
+        images_dir: str,
+        labels_csv: str,
+        transform: A.BasicTransform = None,
+        cache_masks: bool = True,
+    ):
+        items = cls.load_items(annotations_csv, images_dir, labels_csv, cache_masks)
         return cls(items, classes=[], transform=transform)
+
+    @classmethod
+    def calculate_weights(cls, items):
+        positive_pixels = np.zeros(len(cls.LABELS))
+        for item in tqdm(items, desc='Calculating weights', unit='item'):
+            positive_pixels += cls.load_mask(item).sum(axis=(0, 1)) / (item['height'] * item['width'])
+
+        return 1.0 / positive_pixels
 
 
 def load_items(
@@ -175,6 +197,7 @@ def load_items(
     labels_csv: str,
     masks_dir: Optional[str] = None,
     annotations_csv: Optional[str] = None,
+    cache_masks: bool = True,
 ) -> List[Dict[str, Any]]:
     if 'lung' in project:
         assert masks_dir is not None
@@ -182,12 +205,17 @@ def load_items(
 
     if 'catheter' in project:
         assert annotations_csv is not None
-        return XRayCatheterDataset.load_items(annotations_csv, images_dir, labels_csv)
+        return XRayCatheterDataset.load_items(annotations_csv, images_dir, labels_csv, cache_masks)
 
     raise ValueError(f'Unexpected task: {project}. Project should contain one of: lung, catheter')
 
 
 if __name__ == '__main__':
     catheter_dataset = XRayCatheterDataset.create(
-        annotations_csv='data/train_annotations.csv', images_dir='data/train', labels_csv='data/train.csv'
+        annotations_csv='data/train_annotations.csv',
+        images_dir='data/_train',
+        labels_csv='data/train.csv',
+        cache_masks=False,
     )
+    weights = XRayCatheterDataset.calculate_weights(catheter_dataset.items)
+    print(1)
