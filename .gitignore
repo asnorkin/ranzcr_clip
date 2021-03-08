@@ -134,6 +134,7 @@ logs/
 checkpoints/
 mlruns/
 archived_checkpoints/
+notebooks/
 
 kaggle_ideas/
 .idea/
