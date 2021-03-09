@@ -16,9 +16,8 @@ CATHETER_COLORS = [(255, 204, 255), (255, 255, 204), (204, 255, 255), (224, 224,
 
 
 INSTRUCTIONS = """
-This project demonstrates the solution of Kaggle
-[RANZCR CLiP Competition](https://www.kaggle.com/c/ranzcr-clip-catheter-line-classification)
-into a simple interactive app.
+This is an interactive demo of the solution of Kaggle
+[RANZCR CLiP Competition](https://www.kaggle.com/c/ranzcr-clip-catheter-line-classification).
 
 The goal of the competition is to check if all the catheters on chest x-ray scan are in normal positions
 as abnormal catheters positions can hurt the patient.
