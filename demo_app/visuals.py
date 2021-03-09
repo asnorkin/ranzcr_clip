@@ -30,7 +30,7 @@ as abnormal catheters positions can hurt the patient.
 EXPLANATION = """
 The algorithm processes Chest X-Ray Scan into 3 stages:
 - Calculates lung masks
-- Calculates catheters masks
+- Calculates catheter masks
 - Checks catheters positions
 
 You can read more about catheters and their positions in the

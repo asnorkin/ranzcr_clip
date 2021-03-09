@@ -35,6 +35,8 @@ def main() -> None:
             instructions()
         else:
             st.header(status.hint())
+
+        st.markdown('Source: https://github.com/asnorkin/ranzcr_clip')
         return
 
     # Select model_params
@@ -51,6 +53,8 @@ def main() -> None:
 
     # Draw result
     draw_result_ui(image, classification_result, catheter_mask, lung_mask, params)
+
+    st.markdown('Source: https://github.com/asnorkin/ranzcr_clip')
 
 
 if __name__ == '__main__':
