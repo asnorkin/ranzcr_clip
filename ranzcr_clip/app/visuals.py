@@ -35,6 +35,7 @@ The algorithm processes Chest X-Ray Scan into 3 stages:
 
 You can read more about catheters and their positions in the
 [Competition Description](https://www.kaggle.com/c/ranzcr-clip-catheter-line-classification/data) on Kaggle.
+Code: https://github.com/asnorkin/ranzcr_clip
 """
 
 
