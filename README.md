@@ -44,3 +44,8 @@ Run the demo with new model
 ```
 PYTHONPATH=ranzcr_clip:${PYTHONPATH} streamlit run streamlit_app.py
 ```
+
+#### 4. Deploy demo
+```
+docker-compose up --build -d
+```
