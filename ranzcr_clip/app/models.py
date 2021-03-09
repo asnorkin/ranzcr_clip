@@ -33,14 +33,14 @@ def load_model(model_dir: str, model_class: LightningModule) -> TorchModelPredic
 
 
 @st.cache
-def classification(image: np.ndarray, models_dir: str, threshold: float) -> Dict[str, str]:
+def classification(image: np.ndarray, models_dir: str, threshold: float, tta: bool = False) -> Dict[str, str]:
 
     # Load classifier and setup confidence
     classifier = load_model(osp.join(models_dir, 'efficientnet_b5'), XRayClassificationModule)
     classifier.config.confidence_threshold = threshold
 
     # Classify
-    predictions = classifier.predict(image, preprocess=True, output='binary', tta=False)
+    predictions = classifier.predict(image, preprocess=True, output='binary', tta=tta)
     class_labels = [LABELS[class_id] for class_id, prediction in enumerate(predictions) if prediction == 1]
 
     return {label[:3]: label[6:] for label in class_labels}
@@ -52,16 +52,17 @@ def segmentation(
     models_dir: str,
     catheter_mask_threshold: float,
     lung_mask_threshold: float,
+    tta: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray]:
 
     # Catheter
     catheter_segmenter = load_model(osp.join(models_dir, 'unet_catheter'), XRaySegmentationModule)
     catheter_segmenter.config.confidence_threshold = catheter_mask_threshold
-    catheter_mask = catheter_segmenter.predict(image, preprocess=True, output='binary', tta=False)
+    catheter_mask = catheter_segmenter.predict(image, preprocess=True, output='binary', tta=tta)
 
     # Lung
     lung_segmenter = load_model(osp.join(models_dir, 'unet_lung'), XRaySegmentationModule)
     lung_segmenter.config.confidence_threshold = lung_mask_threshold
-    lung_mask = lung_segmenter.predict(image, preprocess=True, output='binary', tta=False)
+    lung_mask = lung_segmenter.predict(image, preprocess=True, output='binary', tta=tta)
 
     return catheter_mask, lung_mask

@@ -45,9 +45,9 @@ def main() -> None:
     explanation()
 
     # Predict
-    classification_result = classification(image, models_dir, params.classification_threshold)
+    classification_result = classification(image, models_dir, params.classification_threshold, params.tta)
     catheter_mask, lung_mask = segmentation(
-        image, models_dir, params.catheter_mask_threshold, params.lung_mask_threshold
+        image, models_dir, params.catheter_mask_threshold, params.lung_mask_threshold, params.tta
     )
 
     # Draw result

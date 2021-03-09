@@ -121,6 +121,7 @@ def select_model_params(interface_type: InterfaceType) -> Namespace:
         lung_mask_opacity=0.3,
         lung_mask_threshold=0.5,
         min_rel_blob_area=1e-4,
+        tta=False,
     )
 
     sliders_count = 0
@@ -140,6 +141,7 @@ def select_model_params(interface_type: InterfaceType) -> Namespace:
         # Filter small blobs flag
         if not st.sidebar.checkbox('Filter small blobs', value=True):
             model_params.min_rel_blob_area = 0.0
+        model_params.tta = st.sidebar.checkbox('HFlip TTA', value=False)
 
         st.sidebar.header('Parameters')
 
@@ -204,6 +206,9 @@ def add_mask(
 
 
 def draw_classification_result(image: np.ndarray, classification_result: Dict[str, str]) -> np.ndarray:
+    if len(classification_result) == 0:
+        return image
+
     # Set up constants
     offset = int(0.04 * image.shape[0])
     x1, y1 = offset, int(0.5 * offset)

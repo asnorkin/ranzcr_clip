@@ -116,7 +116,10 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
             if output == 'logits':
                 logits = logits, logits_hflip
             else:
-                logits = (logits + logits_hflip) / 2
+                if len(logits.shape) == 2:
+                    logits = (logits + logits_hflip) / 2
+                else:
+                    logits = (logits + torch.flip(logits_hflip, dims=(-1,))) / 2
 
         if output == 'logits':
             return logits
