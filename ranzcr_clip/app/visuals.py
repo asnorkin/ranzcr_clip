@@ -214,7 +214,7 @@ def draw_classification_result(image: np.ndarray, classification_result: Dict[st
     x1, y1 = offset, int(0.5 * offset)
 
     # Load font
-    font = ImageFont.truetype('./demo_app/artifacts/fonts/OpenSans-Regular.ttf', int(0.7 * offset))
+    font = ImageFont.truetype('./app/artifacts/fonts/OpenSans-Regular.ttf', int(0.7 * offset))
 
     # Calculate dynamic values
     dx_key = max([font.getsize(key + ' ' * 5)[0] for key in classification_result])
