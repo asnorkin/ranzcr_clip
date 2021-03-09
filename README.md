@@ -1,13 +1,13 @@
 # ranzcr_clip
 
-This repo contains solution code for
+This repo contains the code for
 [RANZCR CLiP](https://www.kaggle.com/c/ranzcr-clip-catheter-line-classification)
 Competition on Kaggle.
 
 ## Interactive Demo
 You can play with already trained models [here](http://3.123.65.222:8501/).
 
-## Get Started
+## Usage
 #### 1. Prepare
 Clone the repo and install requirements
 ```
