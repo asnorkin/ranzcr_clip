@@ -18,7 +18,7 @@ from visuals import (
 def main() -> None:
     path_to_images, models_dir = get_arguments()
 
-    st.title('RANZCR CLiP Demo')
+    st.title('RANZCR CLiP Demo ([code](https://github.com/asnorkin/ranzcr_clip))')
 
     # Check images dir
     if not osp.isdir(path_to_images):
@@ -36,7 +36,6 @@ def main() -> None:
         else:
             st.header(status.hint())
 
-        st.markdown('Code: https://github.com/asnorkin/ranzcr_clip')
         return
 
     # Select model_params

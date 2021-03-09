@@ -35,7 +35,6 @@ The algorithm processes Chest X-Ray Scan into 3 stages:
 
 You can read more about catheters and their positions in the
 [Competition Description](https://www.kaggle.com/c/ranzcr-clip-catheter-line-classification/data) on Kaggle.
-Code: https://github.com/asnorkin/ranzcr_clip
 """
 
 
@@ -121,7 +120,7 @@ def select_model_params(interface_type: InterfaceType) -> Namespace:
         catheter_mask_threshold=0.5,
         lung_mask_opacity=0.3,
         lung_mask_threshold=0.5,
-        min_rel_blob_area=3e-4,
+        min_rel_blob_area=1e-4,
     )
 
     sliders_count = 0
@@ -241,6 +240,9 @@ def process_image(
     lung_mask: np.ndarray,
     params: Namespace,
 ) -> np.ndarray:
+
+    # Copy masks to prevent output of st.cache functions mutation
+    catheter_mask, lung_mask = np.copy(catheter_mask), np.copy(lung_mask)
 
     # Remove small blobs from masks
     lung_mask = filter_small_blobs(lung_mask, params.min_rel_blob_area)
