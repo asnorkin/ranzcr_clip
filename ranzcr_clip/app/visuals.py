@@ -193,13 +193,8 @@ def add_mask(
     mask: np.ndarray,
     opacity: float,
     color: Tuple[int, int, int] = (255, 255, 255),
-    min_rel_area: float = 3e-4,
 ) -> np.ndarray:
     color = np.asarray(color)
-
-    # Filter small blobs
-    if min_rel_area > 0:
-        mask = filter_small_blobs(mask, min_rel_area)
 
     # Prepare mask
     mask = cv.GaussianBlur(mask, ksize=(25, 25), sigmaX=0)
@@ -245,6 +240,23 @@ def process_image(
     lung_mask: np.ndarray,
     params: Namespace,
 ) -> np.ndarray:
+
+    # Remove small blobs from masks
+    lung_mask = filter_small_blobs(lung_mask, params.min_rel_blob_area)
+    for i, catheter in enumerate(CATHETHERS):
+        catheter_mask[..., i] = filter_small_blobs(catheter_mask[..., i], params.min_rel_blob_area)
+
+    # Filter masks that are not in classification result:
+    for i, catheter in enumerate(CATHETHERS):
+        if catheter not in classification_result:
+            catheter_mask[..., i] = 0
+
+    # Filter classification results that are not in catheter masks
+    classification_result = {
+        cat: res for cat, res in classification_result.items() if catheter_mask[..., CATHETHERS.index(cat)].sum() > 0
+    }
+
+    # Prepare image
     result_image = np.copy(uploaded_scan)
     result_image = cv.cvtColor(result_image, cv.COLOR_GRAY2RGB)
 
@@ -252,7 +264,7 @@ def process_image(
     if params.show_catheter_mask:
         for i, _catheter in enumerate(CATHETHERS):
             opacity, color = params.catheter_mask_opacity, CATHETER_COLORS[i]
-            result_image = add_mask(result_image, catheter_mask[..., i], opacity, color, params.min_rel_blob_area)
+            result_image = add_mask(result_image, catheter_mask[..., i], opacity, color)
 
     # Lungs
     if params.show_lung_mask:
