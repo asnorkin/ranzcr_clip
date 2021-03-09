@@ -8,6 +8,8 @@ services:
     ports:
       - "8501:8501"
     command: streamlit run app/app.py
+    environment:
+      - PYTHONPATH=.
 
   nginx:
     container_name: nginx
