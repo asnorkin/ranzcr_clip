@@ -45,15 +45,14 @@ class ImageStatus(Enum):
     NOT_SELECTED = 3
 
     def is_ok(self) -> bool:
-        return self.value() == 0
+        return self.value == 0  # pylint: disable=W0143
 
     def hint(self) -> str:
-        val = self.value()
-        if val == 1:
+        if self.value == 1:  # pylint: disable=W0143
             return 'Can\'t load image'
-        if val == 2:
+        if self.value == 2:  # pylint: disable=W0143
             return 'Please, upload the image'
-        if val == 3:
+        if self.value == 3:  # pylint: disable=W0143
             return 'Please, select the image'
 
         return 'Image successfully loaded'
