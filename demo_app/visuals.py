@@ -86,7 +86,8 @@ def select_image(path_to_images: str) -> (ImageStatus, Optional[np.ndarray]):
         return ImageStatus.LOADING_ERROR, None
 
     st.sidebar.subheader('Scan')
-    image_name = st.sidebar.selectbox('', ['Select X-Ray Scan'] + image_names_list + ['Upload my image'])
+    image_options = ['Select X-Ray Scan'] + sorted(image_names_list) + ['Upload my image']
+    image_name = st.sidebar.selectbox('', image_options)
 
     if image_name == 'Select X-Ray Scan':
         return ImageStatus.NOT_SELECTED, None
