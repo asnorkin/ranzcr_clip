@@ -6,9 +6,9 @@ import streamlit as st
 from pytorch_lightning import LightningModule
 
 import common
-from ranzcr_clip.classification.module import XRayClassificationModule
-from ranzcr_clip.predictors.predictor import TorchModelPredictor
-from ranzcr_clip.segmentation.module import XRaySegmentationModule
+from classification.module import XRayClassificationModule
+from predictors.predictor import TorchModelPredictor
+from segmentation.module import XRaySegmentationModule
 
 
 LABELS = [

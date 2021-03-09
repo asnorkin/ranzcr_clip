@@ -11,8 +11,8 @@ import streamlit as st
 def get_arguments():
     """Return the values of CLI params"""
     parser = ArgumentParser()
-    parser.add_argument('--images_dir', default='artifacts/images')
-    parser.add_argument('--models_dir', default='../models')
+    parser.add_argument('--images_dir', default='app/artifacts/images')
+    parser.add_argument('--models_dir', default='models')
     args = parser.parse_args()
     return args.images_dir, args.models_dir
 
