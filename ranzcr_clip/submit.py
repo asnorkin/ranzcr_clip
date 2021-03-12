@@ -35,6 +35,7 @@ def config_args() -> Namespace:
     ap.add_argument('--images_dir', type=str, required=True)
     ap.add_argument('--checkpoints_dir', type=str, required=True)
     ap.add_argument('--output_dir', type=str, default='.')
+    ap.add_argument('--output', type=str, default='mean')
     ap.add_argument('--batch_size', type=int, default=16)
     ap.add_argument('--num_workers', type=int, default=8)
     ap.add_argument('--tta', action='store_true')
@@ -84,7 +85,7 @@ def main(args: Namespace):
     # Make predictions
     predictions, image_uids = [], []
     for batch in tqdm(batch_generator, desc='Make predictions', unit='batch'):
-        predictions.append(predictor.predict_batch(batch, tta=args.tta, power=args.power))
+        predictions.append(predictor.predict_batch(batch, tta=args.tta, power=args.power, output=args.output))
         image_uids.extend(batch['instance_uid'])
 
     # Aggregate
