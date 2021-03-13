@@ -12,6 +12,7 @@ from torch.backends import cudnn
 
 from classification.module import XRayClassificationModule
 from common.model_utils import ModelConfig
+from predictors.utils import reduce_mean
 
 
 class Predictor:
@@ -90,9 +91,19 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
         )
 
     def predict_batch(
-        self, batch: Union[Dict, List], preprocess: bool = False, output: str = 'probabilities', tta: bool = True
+        self,
+        batch: Union[Dict, List],
+        preprocess: bool = False,
+        output: str = 'probabilities',
+        tta: bool = True,
+        tta_reduction: str = 'mean',
+        tta_reduction_power: float = 1.0,
     ) -> torch.Tensor:
+
+        assert tta_reduction in {'mean', 'none'}
         assert output in {'logits', 'probabilities', 'binary'}
+        if output != 'logits':
+            assert tta_reduction == 'mean'
 
         if isinstance(batch, list):
             batch = {'image': batch}
@@ -113,13 +124,14 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
         # TTA
         if tta:
             logits_hflip = self.model.forward(torch.flip(batch['image'], dims=(-1,)))
-            if output == 'logits':
-                logits = logits, logits_hflip
+            if output == 'logits' and tta_reduction == 'none':
+                logits = torch.stack((logits, logits_hflip))
             else:
-                if len(logits.shape) == 2:
-                    logits = (logits + logits_hflip) / 2
-                else:
-                    logits = (logits + torch.flip(logits_hflip, dims=(-1,))) / 2
+                # We need to flip image for segmentation
+                if len(logits.shape) > 2:
+                    logits_hflip = torch.flip(logits_hflip, dims=(-1,))
+
+                logits = reduce_mean((logits, logits_hflip), power=tta_reduction_power)
 
         if output == 'logits':
             return logits

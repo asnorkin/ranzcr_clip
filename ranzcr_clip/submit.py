@@ -12,6 +12,7 @@ from tqdm import tqdm
 from classification.dataset import InferenceXRayDataset
 from classification.modelzoo import ModelConfig
 from predictors import FoldPredictor
+from predictors.utils import rank_average
 
 
 TARGET_NAMES = [
@@ -35,7 +36,7 @@ def config_args() -> Namespace:
     ap.add_argument('--images_dir', type=str, required=True)
     ap.add_argument('--checkpoints_dir', type=str, required=True)
     ap.add_argument('--output_dir', type=str, default='.')
-    ap.add_argument('--output', type=str, default='mean')
+    ap.add_argument('--reduction', type=str, default='mean', choices=['mean', 'rank'])
     ap.add_argument('--batch_size', type=int, default=16)
     ap.add_argument('--num_workers', type=int, default=8)
     ap.add_argument('--tta', action='store_true')
@@ -61,7 +62,7 @@ def create_batch_generator(args: Namespace, model_config: ModelConfig) -> DataLo
     dataset = InferenceXRayDataset.create(args.images_dir, transform=transform)
 
     if args.debug:
-        dataset.indices = dataset.indices[:50]
+        dataset.indices = dataset.indices[:3]
 
     return DataLoader(
         dataset,
@@ -88,14 +89,30 @@ def main(args: Namespace):
     predictor = FoldPredictor.create_from_checkpoints(args.checkpoints_dir, folds=args.folds)
     batch_generator = create_batch_generator(args, model_config=predictor.config)
 
+    # Build predict params
+    reduction = 'none' if args.reduction == 'rank' else 'mean'
+    predict_params = {
+        'reduction': reduction,
+        'power': args.power,
+        'output': 'logits',
+        'tta': args.tta,
+        'tta_reduction': reduction,
+        'tta_reduction_power': args.power,
+    }
+
     # Make predictions
     predictions, image_uids = [], []
     for batch in tqdm(batch_generator, desc='Make predictions', unit='batch'):
-        predictions.append(predictor.predict_batch(batch, tta=args.tta, power=args.power, output=args.output))
+        predictions.append(predictor.predict_batch(batch, **predict_params))
         image_uids.extend(batch['instance_uid'])
 
     # Aggregate
-    predictions = torch.cat(predictions).to(torch.float32)
+    cat_dim = 2 if args.reduction == 'rank' else 0
+    predictions = torch.cat(predictions, dim=cat_dim).to(torch.float32)
+    if args.reduction == 'rank':
+        predictions = predictions.view(-1, predictions.size(2), predictions.size(3))
+        predictions = rank_average(predictions)
+
     predictions = predictions.cpu().numpy()
 
     # Save submission

@@ -4,10 +4,10 @@ from typing import Optional
 
 import torch
 
-from classification.loss import rank_average
 from classification.modelzoo import ModelConfig
 from classification.module import XRayClassificationModule
 from predictors.predictor import Predictor, TorchModelPredictor
+from predictors.utils import reduce_mean
 
 
 class EnsemblePredictor(Predictor):
@@ -15,28 +15,24 @@ class EnsemblePredictor(Predictor):
         self.config = config
         self.predictors = predictors
 
-    def predict_batch(self, batch, output: str = 'mean', power: float = 1.0, **predict_kwargs) -> torch.Tensor:
+    def predict_batch(self, batch, reduction: str = 'mean', power: float = 1.0, **predict_kwargs) -> torch.Tensor:
         batch_predictions = [predictor.predict_batch(batch, **predict_kwargs) for predictor in self.predictors]
-        batch_predictions = self.merge(batch_predictions, output=output, power=power)
+        batch_predictions = self.merge(batch_predictions, reduction=reduction, power=power)
         return batch_predictions
 
-    def merge(self, batch_predictions: list, output: str = 'mean', power: float = 1) -> torch.Tensor:
+    def merge(self, batch_predictions: list, reduction: str = 'mean', power: float = 1) -> torch.Tensor:
         raise NotImplementedError
 
 
 class FoldPredictor(EnsemblePredictor):
-    def merge(self, batch_predictions: list, output: str = 'mean', power: float = 1.0) -> torch.Tensor:
-        if output not in {'rank', 'mean'}:
-            raise ValueError(f'Unexpected merge output type: {output}')
+    def merge(self, batch_predictions: list, reduction: str = 'mean', power: float = 1.0) -> torch.Tensor:
+        if reduction not in {'none', 'mean'}:
+            raise ValueError(f'Unexpected merge reduction type: {reduction}')
 
-        if output == 'rank':
-            return rank_average(batch_predictions)
+        if reduction == 'none':
+            return torch.stack(batch_predictions)
 
-        batch_predictions = torch.stack(batch_predictions)
-        if power != 1:
-            torch.pow(batch_predictions, power, out=batch_predictions)
-
-        return batch_predictions.mean(dim=0)
+        return reduce_mean(batch_predictions, power=power)
 
     @classmethod
     def create_from_checkpoints(cls, checkpoints_dir: str, folds: Optional[str] = None):

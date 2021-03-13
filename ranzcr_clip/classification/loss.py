@@ -47,18 +47,6 @@ def batch_auc_roc(targets, probabilities, reduction='mean', n_targets=11):
     return reduce_auc_roc(result, reduction=reduction)
 
 
-def rank_average(*tensors):
-    assert len(tensors) > 1
-
-    norm = len(tensors) * len(tensors[0])
-
-    result = torch.zeros_like(tensors[0])
-    for tensor in tensors:
-        result += torch.argsort(tensor, dim=0) / norm
-
-    return result
-
-
 class LabelSmoothingCrossEntropy(nn.Module):
     def __init__(self, epsilon: float = 0.1, reduction='mean'):
         super().__init__()
