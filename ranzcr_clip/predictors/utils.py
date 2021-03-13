@@ -17,8 +17,8 @@ def reduce_mean(tensors: Union[Tuple[torch.Tensor, ...], List[torch.Tensor]], po
         return tensors.mean(dim=0)
 
     # Power mean
-    result = torch.float_power(tensors, power).mean(dim=0)
-    result = torch.float_power(result, 1.0 / power)
+    result = torch.pow(tensors, power).mean(dim=0)
+    result = torch.pow(result, 1.0 / power)
 
     return result
 
