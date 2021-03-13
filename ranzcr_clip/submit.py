@@ -61,7 +61,7 @@ def create_batch_generator(args: Namespace, model_config: ModelConfig) -> DataLo
     dataset = InferenceXRayDataset.create(args.images_dir, transform=transform)
 
     if args.debug:
-        dataset.items = dataset.items[:50]
+        dataset.indices = dataset.indices[:50]
 
     return DataLoader(
         dataset,
