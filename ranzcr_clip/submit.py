@@ -78,6 +78,8 @@ def save(predictions: np.ndarray, image_uids: list, output_dir: str) -> pd.DataF
 
 
 def main(args: Namespace):
+    print(f'Submit params:\n{args}')
+
     # Create batch generator and predictor
     predictor = FoldPredictor.create_from_checkpoints(args.checkpoints_dir, folds=args.folds)
     batch_generator = create_batch_generator(args, model_config=predictor.config)
