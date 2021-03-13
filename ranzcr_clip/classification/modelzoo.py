@@ -1,10 +1,21 @@
 from efficientnet_pytorch import EfficientNet
 
-from timm import models as timm_models
+try:
+    from timm import models as timm_models
+
+    TIMM_INSTALLED = True
+except ImportError:
+    TIMM_INSTALLED = False
+
 from torch import nn
 from torchvision import models as tv_models
 
 from common.model_utils import ModelConfig
+
+
+def check_timm_installed():
+    if not TIMM_INSTALLED:
+        raise ImportError('timm module is not installed!')
 
 
 def resnext50_32x4d(config: ModelConfig, in_channels: int = 1) -> nn.Module:
@@ -24,6 +35,8 @@ def resnext50_32x4d(config: ModelConfig, in_channels: int = 1) -> nn.Module:
 
 
 def resnet(config: ModelConfig, in_channels: int = 1) -> nn.Module:
+    check_timm_installed()
+
     params = {'pretrained': config.pretrained}
 
     # Load original model
@@ -84,6 +97,8 @@ def densenet(config: ModelConfig, in_channels: int = 1) -> nn.Module:
 
 
 def nfnet(config: ModelConfig, in_channels: int = 1) -> nn.Module:
+    check_timm_installed()
+
     params = {
         'pretrained': config.pretrained,
         'num_classes': config.num_classes,
