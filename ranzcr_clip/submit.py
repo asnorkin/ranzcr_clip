@@ -41,6 +41,7 @@ def config_args() -> Namespace:
     ap.add_argument('--tta', action='store_true')
     ap.add_argument('--power', type=float, default=1.0)
     ap.add_argument('--folds', type=str, default=None)
+    ap.add_argument('--debug', action='store_true')
 
     args = ap.parse_args()
 
@@ -58,6 +59,9 @@ def create_batch_generator(args: Namespace, model_config: ModelConfig) -> DataLo
     )
 
     dataset = InferenceXRayDataset.create(args.images_dir, transform=transform)
+
+    if args.debug:
+        dataset.items = dataset.items[:50]
 
     return DataLoader(
         dataset,
