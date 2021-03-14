@@ -59,10 +59,12 @@ def segmentation(
     catheter_segmenter = load_model(osp.join(models_dir, 'unet_catheter'), XRaySegmentationModule)
     catheter_segmenter.config.confidence_threshold = catheter_mask_threshold
     catheter_mask = catheter_segmenter.predict(image, preprocess=True, output='binary', tta=tta)
+    catheter_mask = catheter_mask.cpu().numpy()
 
     # Lung
     lung_segmenter = load_model(osp.join(models_dir, 'unet_lung'), XRaySegmentationModule)
     lung_segmenter.config.confidence_threshold = lung_mask_threshold
     lung_mask = lung_segmenter.predict(image, preprocess=True, output='binary', tta=tta)
+    lung_mask = lung_mask.cpu().numpy()
 
     return catheter_mask, lung_mask
