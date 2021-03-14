@@ -3,12 +3,12 @@ import os.path as osp
 from typing import Dict, List, Union
 
 import albumentations as A
-import albumentations.augmentations.functional as AF
 import numpy as np
 import torch
 from albumentations.pytorch.transforms import ToTensorV2
 from pytorch_lightning import LightningModule
 from torch.backends import cudnn
+from torchvision.transforms.functional import resize
 
 from classification.module import XRayClassificationModule
 from common.model_utils import ModelConfig
@@ -137,30 +137,31 @@ class TorchModelPredictor(TorchModelMixin, Predictor):
             return logits
 
         # Postprocess
-        predictions = torch.sigmoid(logits).cpu().numpy()
+        predictions = torch.sigmoid(logits)
 
         if output == 'binary':
             predictions[predictions < self.config.confidence_threshold] = 0
             predictions[predictions >= self.config.confidence_threshold] = 1
-            predictions = predictions.astype(int)
+            predictions = predictions.long()
 
         # Segmentation masks postprocess
         if len(predictions.shape) > 2:
             # Prepare masks
-            predictions = (predictions * 255).astype(np.uint8).transpose(0, 2, 3, 1)
+            predictions = (predictions * 255).long()  # .transpose(0, 2, 3, 1)
             if predictions.shape[-1] == 1:
                 predictions = predictions[..., 0]
 
             # Resize to the original size
-            resized_predictions = []
-            for i, prediction in enumerate(predictions):
-                ori_height, ori_width = batch['ori_shape'][i]
-                resized_predictions.append(AF.resize(prediction, height=ori_height, width=ori_width))
-            predictions = np.stack(resized_predictions)
+            predictions = torch.stack(
+                [resize(prediction, size=batch['ori_shape'][i]) for i, prediction in enumerate(predictions)]
+            )
 
             # Fix resize error
             predictions[predictions < 128] = 0
             predictions[predictions >= 128] = 255
+
+            # Fix dtype and dimensions
+            predictions = predictions.type(torch.uint8).permute(0, 2, 3, 1)
 
         return predictions
 

@@ -94,7 +94,7 @@ def main(args: Namespace):
     predict_params = {
         'reduction': reduction,
         'power': args.power,
-        'output': 'logits',
+        'output': 'logits' if args.reduction == 'rank' else 'probabilities',
         'tta': args.tta,
         'tta_reduction': reduction,
         'tta_reduction_power': args.power,
