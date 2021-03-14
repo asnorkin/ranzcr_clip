@@ -40,4 +40,4 @@ def reduce_mean(tensors: Union[Tuple[torch.Tensor, ...], List[torch.Tensor]], po
 
 
 def rank_average(tensor: torch.Tensor) -> torch.Tensor:
-    return torch.argsort(tensor, dim=1).float().mean(dim=0) / tensor.shape[1]
+    return tensor.argsort(dim=1).argsort(dim=1).float().mean(dim=0) / tensor.shape[1]
